@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Neon Runner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            overflow: hidden;
+            background-color: #050510;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+        #game-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        #score-board {
+            color: #00ffcc;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.7);
+            display: flex;
+            justify-content: space-between;
+        }
+        #menu-screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(10, 10, 25, 0.85);
+            border: 2px solid #00ffcc;
+            border-radius: 15px;
+            padding: 30px 40px;
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
+            backdrop-filter: blur(5px);
+        }
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00ffcc;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        p {
+            font-size: 15px;
+            color: #cccccc;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        button {
+            background: linear-gradient(45deg, #00ffcc, #0099ff);
+            border: none;
+            padding: 12px 35px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #050510;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+        }
+        button:active {
+            transform: scale(0.95);
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="score-board">
+            <div>SCORE: <span id="score">0</span></div>
+            <div>BEST: <span id="high-score">0</span></div>
+        </div>
+    </div>
+
+    <div id="menu-screen">
+        <h1 id="menu-title">NEON RUNNER 3D</h1>
+        <p id="menu-desc">लाल ब्लॉक्स से बचें!<br><b>Mobile:</b> Left, Right या Up स्वाइप करें<br><b>PC:</b> Arrow Keys या Spacebar दबाएं</p>
+        <button id="start-btn">PLAY GAME</button>
+    </div>
+
+    <script>
+        // --- Game Variables ---
+        let scene, camera, renderer;
+        let player, gridHelper;
+        let obstacles = [];
+        let particles = [];
+        
+        let isGameRunning = false;
+        let score = 0;
+        let highScore = localStorage.getItem('neonRunnerHighScore') || 0;
+        document.getElementById('high-score').innerText = highScore;
+
+        // Player Movement & Lanes
+        const lanes = [-2.5, 0, 2.5]; // Left, Center, Right
+        let currentLane = 1; // Start in Center
+        let targetX = lanes[currentLane];
+        
+        // Jump Physics
+        let isJumping = false;
+        let jumpVelocity = 0;
+        const gravity = -0.025;
+        const jumpPower = 0.45;
+        const playerBaseY = 0.6;
+
+        // Game Speed
+        let gameSpeed = 0.35;
+        let spawnTimer = 0;
+
+        // UI Elements
+        const menuScreen = document.getElementById('menu-screen');
+        const menuTitle = document.getElementById('menu-title');
+        const menuDesc = document.getElementById('menu-desc');
+        const startBtn = document.getElementById('start-btn');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('high-score');
+
+        // --- Initialize 3D Scene ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050510);
+            scene.fog = new THREE.FogExp2(0x050510, 0.025);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 4, 7.5);
+            camera.lookAt(0, 1, -5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.body.appendChild(renderer.domElement);
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x00ffcc, 0.8);
+            dirLight.position.set(5, 10, 7);
+            scene.add(dirLight);
+
+            // Floor & Moving Grid
+            const floorGeo = new THREE.PlaneGeometry(12, 200);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x0a0a1a, 
+                roughness: 0.8 
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.z = -80;
+            scene.add(floor);
+
+            gridHelper = new THREE.GridHelper(200, 100, 0x00ffcc, 0x1a1a3a);
+            gridHelper.position.y = 0.01;
+            gridHelper.position.z = -80;
+            scene.add(gridHelper);
+
+            // Side Neon Borders
+            createTrackBorders();
+
+            // Player Cube
+            const playerGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+            const playerMat = new THREE.MeshStandardMaterial({ 
+                color: 0x00ffcc, 
+                emissive: 0x00aa88,
+                emissiveIntensity: 0.5,
+                roughness: 0.2
+            });
+            player = new THREE.Mesh(playerGeo, playerMat);
+            player.position.set(0, playerBaseY, 0);
+            scene.add(player);
+
+            window.addEventListener('resize', onWindowResize);
+            setupControls();
+            animate();
+        }
+
+        function createTrackBorders() {
+            const borderGeo = new THREE.BoxGeometry(0.2, 0.4, 200);
+            const borderMat = new THREE.MeshBasicMaterial({ color: 0x0099ff });
+            
+            const leftBorder = new THREE.Mesh(borderGeo, borderMat);
+            leftBorder.position.set(-4.2, 0.2, -80);
+            scene.add(leftBorder);
+
+            const rightBorder = new THREE.Mesh(borderGeo, borderMat);
+            rightBorder.position.set(4.2, 0.2, -80);
+            scene.add(rightBorder);
+        }
+
+        // --- Controls (Keyboard + Mobile Touch Swipe) ---
+        function setupControls() {
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                if (!isGameRunning) return;
+                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
+            });
+
+            // Touch Swipe
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            window.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!isGameRunning) return;
+                let touchEndX = e.changedTouches[0].screenX;
+                let touchEndY = e.changedTouches[0].screenY;
+                
+                let dx = touchEndX - touchStartX;
+                let dy = touchEndY - touchStartY;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 30) moveRight();
+                    else if (dx < -30) moveLeft();
+                } else {
+                    if (dy < -30) jump();
+                }
+            }, { passive: true });
+        }
+
+        function moveLeft() {
+            if (currentLane > 0) {
+                currentLane--;
+                targetX = lanes[currentLane];
+            }
+        }
+
+        function moveRight() {
+            if (currentLane < 2) {
+                currentLane++;
+                targetX = lanes[currentLane];
+            }
+        }
+
+        function jump() {
+            if (!isJumping) {
+                isJumping = true;
+                jumpVelocity = jumpPower;
+            }
+        }
+
+        // --- Obstacles & Particles ---
+        function spawnObstacle() {
+            const laneIndex = Math.floor(Math.random() * 3);
+            const isTall = Math.random() > 0.7; // Some obstacles are taller
+            
+            const height = isTall ? 2.2 : 1.2;
+            const obsGeo = new THREE.BoxGeometry(1.4, height, 1.4);
+            const obsMat = new THREE.MeshStandardMaterial({ 
+                color: 0xff2a55, 
+                emissive: 0xaa0022,
+                emissiveIntensity: 0.6
+            });
+            
+            const obstacle = new THREE.Mesh(obsGeo, obsMat);
+            obstacle.position.set(lanes[laneIndex], height / 2, -90);
+            
+            scene.add(obstacle);
+            obstacles.push(obstacle);
+        }
+
+        function createExplosion(pos) {
+            for (let i = 0; i < 25; i++) {
+                const pGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
+                const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x00ffcc : 0xff2a55 });
+                const particle = new THREE.Mesh(pGeo, pMat);
+                particle.position.copy(pos);
+                
+                particle.userData = {
+                    vel: new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.4,
+                        Math.random() * 0.4,
+                        (Math.random() - 0.5) * 0.4
+                    ),
+                    life: 1.0
+                };
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+
+        // --- Game Loop & State Management ---
+        function startGame() {
+            // Reset variables
+            score = 0;
+            gameSpeed = 0.4;
+            currentLane = 1;
+            targetX = lanes[currentLane];
+            isJumping = false;
+            jumpVelocity = 0;
+            
+            player.position.set(0, playerBaseY, 0);
+            player.rotation.set(0, 0, 0);
+            player.visible = true;
+
+            // Clear old obstacles
+            obstacles.forEach(obs => scene.remove(obs));
+            obstacles = [];
+
+            scoreEl.innerText = '0';
+            menuScreen.classList.add('hidden');
+            isGameRunning = true;
+        }
+
+        function gameOver() {
+            isGameRunning = false;
+            player.visible = false;
+            createExplosion(player.position);
+
+            if (score > highScore) {
+                highScore = Math.floor(score);
+                localStorage.setItem('neonRunnerHighScore', highScore);
+                highScoreEl.innerText = highScore;
+            }
+
+            setTimeout(() => {
+                menuTitle.innerText = "GAME OVER";
+                menuDesc.innerHTML = `आपका स्कोर: <b>${Math.floor(score)}</b><br>फिर से खेलने के लिए नीचे दबाएं`;
+                startBtn.innerText = "PLAY AGAIN";
+                menuScreen.classList.remove('hidden');
+            }, 700);
+        }
+
+        startBtn.addEventListener('click', startGame);
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.position.add(p.userData.vel);
+                p.userData.vel.y -= 0.015;
+                p.userData.life -= 0.03;
+                p.scale.setScalar(Math.max(0, p.userData.life));
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+
+            if (isGameRunning) {
+                // Increase score & speed gradually
+                score += 0.15;
+                scoreEl.innerText = Math.floor(score);
+                gameSpeed += 0.00015;
+
+                // Move Grid illusion
+                gridHelper.position.z += gameSpeed;
+                if (gridHelper.position.z > -60) {
+                    gridHelper.position.z = -80;
+                }
+
+                // Smooth Lane Movement
+                player.position.x += (targetX - player.position.x) * 0.2;
+                player.rotation.z = (player.position.x - targetX) * 0.3; // Tilt effect
+
+                // Jump Physics
+                if (isJumping) {
+                    player.position.y += jumpVelocity;
+                    jumpVelocity += gravity;
+                    player.rotation.x -= 0.12; // Flip animation while jumping
+
+                    if (player.position.y <= playerBaseY) {
+                        player.position.y = playerBaseY;
+                        isJumping = false;
+                        player.rotation.x = 0;
+                    }
+                }
+
+                // Spawn Obstacles
+                spawnTimer += gameSpeed;
+                if (spawnTimer > 18) {
+                    spawnObstacle();
+                    spawnTimer = 0;
+                }
+
+                // Update & Check Collisions for Obstacles
+                const playerBox = new THREE.Box3().setFromObject(player);
+                // Slightly shrink hitbox for fair gameplay
+                playerBox.expandByScalar(-0.15);
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.position.z += gameSpeed;
+
+                    const obsBox = new THREE.Box3().setFromObject(obs);
+                    if (playerBox.intersectsBox(obsBox)) {
+                        gameOver();
+                        break;
+                    }
+
+                    // Remove passed obstacles
+                    if (obs.position.z > 10) {
+                        scene.remove(obs);
+                        obstacles.splice(i, 1);
+                    }
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Start engine
+        init();
+    </script>
+</body>
+</html>
