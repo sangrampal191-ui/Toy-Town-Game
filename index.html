@@ -1,448 +1,549 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Neon Runner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Tactical Shooter</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-user-select: none;
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body { overflow: hidden; background-color: #111; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        #hud {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: none;
         }
-        body {
-            overflow: hidden;
-            background-color: #050510;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            touch-action: none;
-        }
-        #game-canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 20px;
-        }
-        #score-board {
-            color: #00ffcc;
-            font-size: 28px;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.7);
-            display: flex;
-            justify-content: space-between;
-        }
-        #menu-screen {
-            position: absolute;
-            top: 50%;
-            left: 50%;
+        
+        /* Crosshair */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            width: 20px; height: 20px;
             transform: translate(-50%, -50%);
-            background: rgba(10, 10, 25, 0.85);
-            border: 2px solid #00ffcc;
-            border-radius: 15px;
-            padding: 30px 40px;
-            text-align: center;
-            color: white;
-            pointer-events: auto;
-            box-shadow: 0 0 30px rgba(0, 255, 204, 0.3);
-            backdrop-filter: blur(5px);
         }
-        h1 {
-            font-size: 32px;
-            margin-bottom: 10px;
-            color: #00ffcc;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: #00ff88;
         }
-        p {
-            font-size: 15px;
-            color: #cccccc;
-            margin-bottom: 25px;
-            line-height: 1.5;
+        #crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+        #crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+
+        /* Stats Panels */
+        .panel {
+            position: absolute; background: rgba(0, 0, 0, 0.6);
+            color: white; padding: 15px 25px; border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
         }
+        #health-panel { bottom: 20px; left: 20px; }
+        #ammo-panel { bottom: 20px; right: 20px; text-align: right; }
+        #score-panel { top: 20px; left: 20px; }
+
+        .label { font-size: 12px; text-transform: uppercase; color: #aaa; letter-spacing: 1px; }
+        .value { font-size: 28px; font-weight: bold; }
+        #hp-bar-bg { width: 200px; height: 10px; background: #333; margin-top: 8px; border-radius: 5px; overflow: hidden; }
+        #hp-bar { width: 100%; height: 100%; background: #ff3b3b; transition: width 0.2s; }
+
+        /* Damage Flash */
+        #damage-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, transparent 50%, rgba(255, 0, 0, 0.5) 100%);
+            opacity: 0; pointer-events: none; transition: opacity 0.15s;
+        }
+
+        /* Start / Game Over Screen */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 20, 25, 0.9);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: white; z-index: 10; text-align: center;
+        }
+        h1 { font-size: 48px; letter-spacing: 3px; margin-bottom: 10px; color: #ff9800; }
+        p { font-size: 16px; color: #ccc; margin-bottom: 30px; line-height: 1.6; }
         button {
-            background: linear-gradient(45deg, #00ffcc, #0099ff);
-            border: none;
-            padding: 12px 35px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #050510;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            padding: 15px 40px; font-size: 20px; font-weight: bold;
+            background: #ff9800; color: #111; border: none; border-radius: 5px;
+            cursor: pointer; transition: transform 0.1s, background 0.2s;
         }
-        button:active {
-            transform: scale(0.95);
-        }
-        .hidden {
-            display: none !important;
-        }
+        button:hover { background: #ffb74d; transform: scale(1.05); }
     </style>
-    <!-- Three.js CDN -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div id="score-board">
-            <div>SCORE: <span id="score">0</span></div>
-            <div>BEST: <span id="high-score">0</span></div>
+    <div id="damage-overlay"></div>
+
+    <div id="hud">
+        <div id="crosshair"></div>
+        <div id="score-panel" class="panel">
+            <div class="label">Kills</div>
+            <div id="kills" class="value">0</div>
+        </div>
+        <div id="health-panel" class="panel">
+            <div class="label">Health</div>
+            <div id="hp-text" class="value">100</div>
+            <div id="hp-bar-bg"><div id="hp-bar"></div></div>
+        </div>
+        <div id="ammo-panel" class="panel">
+            <div class="label">Ammo (R to Reload)</div>
+            <div id="ammo" class="value">30 / 30</div>
         </div>
     </div>
 
-    <div id="menu-screen">
-        <h1 id="menu-title">NEON RUNNER 3D</h1>
-        <p id="menu-desc">लाल ब्लॉक्स से बचें!<br><b>Mobile:</b> Left, Right या Up स्वाइप करें<br><b>PC:</b> Arrow Keys या Spacebar दबाएं</p>
-        <button id="start-btn">PLAY GAME</button>
+    <div id="overlay">
+        <h1 id="title">STRIKE ZONE 3D</h1>
+        <p id="instructions">
+            <b>W A S D</b> to Move &nbsp;|&nbsp; <b>SPACE</b> to Jump<br>
+            <b>MOUSE</b> to Aim &nbsp;|&nbsp; <b>LEFT CLICK</b> to Shoot &nbsp;|&nbsp; <b>R</b> to Reload
+        </p>
+        <button id="start-btn">DEPLOY</button>
     </div>
 
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <script>
-        // --- Game Variables ---
-        let scene, camera, renderer;
-        let player, gridHelper;
-        let obstacles = [];
-        let particles = [];
+        // --- GAME STATE ---
+        let isPlaying = false;
+        let hp = 100;
+        let kills = 0;
+        let ammo = 30;
+        const maxAmmo = 30;
+        let isReloading = false;
+
+        // --- THREE.JS SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87ceeb); // Sky blue
+        scene.fog = new THREE.Fog(0x87ceeb, 20, 120);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50, 80, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.left = -60;
+        dirLight.shadow.camera.right = 60;
+        dirLight.shadow.camera.top = 60;
+        dirLight.shadow.camera.bottom = -60;
+        scene.add(dirLight);
+
+        // --- MAP & ENVIRONMENT ---
+        const obstacles = []; // Bounding boxes for collision
+
+        // Ground
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x3b593f, roughness: 0.8 });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // Grid helper for visual speed reference
+        const grid = new THREE.GridHelper(200, 40, 0x000000, 0x000000);
+        grid.material.opacity = 0.15;
+        grid.material.transparent = true;
+        scene.add(grid);
+
+        function createBox(x, y, z, w, h, d, color) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7 });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y + h / 2, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+
+            const box = new THREE.Box3().setFromObject(mesh);
+            obstacles.push(box);
+            return mesh;
+        }
+
+        // Arena Perimeter Walls
+        createBox(0, 0, -100, 200, 10, 2, 0x555555);
+        createBox(0, 0, 100, 200, 10, 2, 0x555555);
+        createBox(-100, 0, 0, 2, 10, 200, 0x555555);
+        createBox(100, 0, 0, 2, 10, 200, 0x555555);
+
+        // Buildings & Cover Crates
+        createBox(-20, 0, -20, 12, 8, 12, 0x8d6e63);
+        createBox(25, 0, -30, 15, 10, 10, 0x78909c);
+        createBox(-30, 0, 25, 10, 6, 15, 0x8d6e63);
+        createBox(20, 0, 20, 14, 9, 14, 0x78909c);
         
-        let isGameRunning = false;
-        let score = 0;
-        let highScore = localStorage.getItem('neonRunnerHighScore') || 0;
-        document.getElementById('high-score').innerText = highScore;
+        // Smaller crates
+        const cratePositions = [
+            [0, -15], [10, 5], [-12, 8], [35, 0], [-35, -5], [0, 35], [5, -45]
+        ];
+        cratePositions.forEach(pos => {
+            createBox(pos[0], 0, pos[1], 3, 3, 3, 0xd4a373);
+        });
 
-        // Player Movement & Lanes
-        const lanes = [-2.5, 0, 2.5]; // Left, Center, Right
-        let currentLane = 1; // Start in Center
-        let targetX = lanes[currentLane];
+        // --- PLAYER WEAPON (3D MODEL ATTACHED TO CAMERA) ---
+        const gunGroup = new THREE.Group();
         
-        // Jump Physics
-        let isJumping = false;
-        let jumpVelocity = 0;
-        const gravity = -0.025;
-        const jumpPower = 0.45;
-        const playerBaseY = 0.6;
+        const bodyGeo = new THREE.BoxGeometry(0.12, 0.16, 0.6);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.7, roughness: 0.3 });
+        const gunBody = new THREE.Mesh(bodyGeo, bodyMat);
+        
+        const barrelGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 8);
+        barrelGeo.rotateX(Math.PI / 2);
+        const barrel = new THREE.Mesh(barrelGeo, bodyMat);
+        barrel.position.set(0, 0.04, -0.4);
 
-        // Game Speed
-        let gameSpeed = 0.35;
-        let spawnTimer = 0;
+        const muzzleGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        const muzzleMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, visible: false });
+        const muzzleFlash = new THREE.Mesh(muzzleGeo, muzzleMat);
+        muzzleFlash.position.set(0, 0.04, -0.62);
 
-        // UI Elements
-        const menuScreen = document.getElementById('menu-screen');
-        const menuTitle = document.getElementById('menu-title');
-        const menuDesc = document.getElementById('menu-desc');
+        gunGroup.add(gunBody, barrel, muzzleFlash);
+        gunGroup.position.set(0.28, -0.25, -0.5);
+        camera.add(gunGroup);
+        scene.add(camera);
+
+        // --- PLAYER MOVEMENT & CONTROLS ---
+        const player = {
+            height: 2.0,
+            speed: 14.0,
+            velocity: new THREE.Vector3(),
+            canJump: false
+        };
+
+        const keys = {};
+        let yaw = 0;
+        let pitch = 0;
+
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'KeyR' && isPlaying) reload();
+        });
+        document.addEventListener('keyup', (e) => keys[e.code] = false);
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isPlaying) return;
+            const sensitivity = 0.0022;
+            yaw -= e.movementX * sensitivity;
+            pitch -= e.movementY * sensitivity;
+            pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+            
+            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (isPlaying && e.button === 0) shoot();
+        });
+
+        // --- BULLETS & SHOOTING ---
+        const bullets = [];
+        const bulletGeo = new THREE.SphereGeometry(0.08, 6, 6);
+        const playerBulletMat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const enemyBulletMat = new THREE.MeshBasicMaterial({ color: 0xff2222 });
+
+        function shoot() {
+            if (isReloading || ammo <= 0) {
+                if (ammo <= 0) reload();
+                return;
+            }
+
+            ammo--;
+            updateHUD();
+
+            // Recoil & Muzzle Flash
+            gunGroup.position.z = -0.38;
+            muzzleFlash.visible = true;
+            setTimeout(() => { muzzleFlash.visible = false; }, 50);
+
+            // Spawn Bullet
+            const bullet = new THREE.Mesh(bulletGeo, playerBulletMat);
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+
+            bullet.position.copy(camera.position).addScaledVector(dir, 0.8);
+            bullet.position.y -= 0.1;
+            
+            scene.add(bullet);
+            bullets.push({ mesh: bullet, dir: dir, speed: 90, isPlayer: true, life: 2.0 });
+        }
+
+        function reload() {
+            if (isReloading || ammo === maxAmmo) return;
+            isReloading = true;
+            document.getElementById('ammo').innerText = "RELOADING...";
+            gunGroup.rotation.x = -0.5;
+            
+            setTimeout(() => {
+                ammo = maxAmmo;
+                isReloading = false;
+                gunGroup.rotation.x = 0;
+                updateHUD();
+            }, 1200);
+        }
+
+        // --- ENEMY BOTS ---
+        const enemies = [];
+        const enemyGeo = new THREE.BoxGeometry(1.2, 2.2, 1.2);
+        const enemyMat = new THREE.MeshStandardMaterial({ color: 0xd32f2f });
+
+        function spawnEnemy() {
+            const enemy = new THREE.Mesh(enemyGeo, enemyMat);
+            let x, z;
+            do {
+                x = (Math.random() - 0.5) * 160;
+                z = (Math.random() - 0.5) * 160;
+            } while (Math.hypot(x - camera.position.x, z - camera.position.z) < 25);
+
+            enemy.position.set(x, 1.1, z);
+            enemy.castShadow = true;
+            scene.add(enemy);
+
+            enemies.push({
+                mesh: enemy,
+                hp: 100,
+                speed: 6.5,
+                shootTimer: Math.random() * 2
+            });
+        }
+
+        function takeDamage(amount) {
+            hp -= amount;
+            updateHUD();
+            
+            const dmgOverlay = document.getElementById('damage-overlay');
+            dmgOverlay.style.opacity = 1;
+            setTimeout(() => { dmgOverlay.style.opacity = 0; }, 150);
+
+            if (hp <= 0) {
+                gameOver();
+            }
+        }
+
+        // --- COLLISION CHECK ---
+        function checkCollision(pos, radius = 0.6) {
+            const playerBox = new THREE.Box3(
+                new THREE.Vector3(pos.x - radius, pos.y - player.height, pos.z - radius),
+                new THREE.Vector3(pos.x + radius, pos.y + 0.2, pos.z + radius)
+            );
+            for (let obs of obstacles) {
+                if (playerBox.intersectsBox(obs)) return true;
+            }
+            return false;
+        }
+
+        // --- UI & GAME FLOW ---
+        function updateHUD() {
+            document.getElementById('hp-text').innerText = Math.max(0, hp);
+            document.getElementById('hp-bar').style.width = Math.max(0, hp) + '%';
+            document.getElementById('kills').innerText = kills;
+            if (!isReloading) {
+                document.getElementById('ammo').innerText = `${ammo} / ${maxAmmo}`;
+            }
+        }
+
+        const overlay = document.getElementById('overlay');
         const startBtn = document.getElementById('start-btn');
-        const scoreEl = document.getElementById('score');
-        const highScoreEl = document.getElementById('high-score');
 
-        // --- Initialize 3D Scene ---
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x050510);
-            scene.fog = new THREE.FogExp2(0x050510, 0.025);
+        startBtn.addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 4, 7.5);
-            camera.lookAt(0, 1, -5);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.body.appendChild(renderer.domElement);
-
-            // Lights
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-            scene.add(ambientLight);
-
-            const dirLight = new THREE.DirectionalLight(0x00ffcc, 0.8);
-            dirLight.position.set(5, 10, 7);
-            scene.add(dirLight);
-
-            // Floor & Moving Grid
-            const floorGeo = new THREE.PlaneGeometry(12, 200);
-            const floorMat = new THREE.MeshStandardMaterial({ 
-                color: 0x0a0a1a, 
-                roughness: 0.8 
-            });
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            floor.position.z = -80;
-            scene.add(floor);
-
-            gridHelper = new THREE.GridHelper(200, 100, 0x00ffcc, 0x1a1a3a);
-            gridHelper.position.y = 0.01;
-            gridHelper.position.z = -80;
-            scene.add(gridHelper);
-
-            // Side Neon Borders
-            createTrackBorders();
-
-            // Player Cube
-            const playerGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
-            const playerMat = new THREE.MeshStandardMaterial({ 
-                color: 0x00ffcc, 
-                emissive: 0x00aa88,
-                emissiveIntensity: 0.5,
-                roughness: 0.2
-            });
-            player = new THREE.Mesh(playerGeo, playerMat);
-            player.position.set(0, playerBaseY, 0);
-            scene.add(player);
-
-            window.addEventListener('resize', onWindowResize);
-            setupControls();
-            animate();
-        }
-
-        function createTrackBorders() {
-            const borderGeo = new THREE.BoxGeometry(0.2, 0.4, 200);
-            const borderMat = new THREE.MeshBasicMaterial({ color: 0x0099ff });
-            
-            const leftBorder = new THREE.Mesh(borderGeo, borderMat);
-            leftBorder.position.set(-4.2, 0.2, -80);
-            scene.add(leftBorder);
-
-            const rightBorder = new THREE.Mesh(borderGeo, borderMat);
-            rightBorder.position.set(4.2, 0.2, -80);
-            scene.add(rightBorder);
-        }
-
-        // --- Controls (Keyboard + Mobile Touch Swipe) ---
-        function setupControls() {
-            // Keyboard
-            window.addEventListener('keydown', (e) => {
-                if (!isGameRunning) return;
-                if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
-                if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
-                if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
-            });
-
-            // Touch Swipe
-            let touchStartX = 0;
-            let touchStartY = 0;
-
-            window.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-                touchStartY = e.changedTouches[0].screenY;
-            }, { passive: true });
-
-            window.addEventListener('touchend', (e) => {
-                if (!isGameRunning) return;
-                let touchEndX = e.changedTouches[0].screenX;
-                let touchEndY = e.changedTouches[0].screenY;
-                
-                let dx = touchEndX - touchStartX;
-                let dy = touchEndY - touchStartY;
-
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    if (dx > 30) moveRight();
-                    else if (dx < -30) moveLeft();
-                } else {
-                    if (dy < -30) jump();
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === document.body) {
+                isPlaying = true;
+                overlay.style.display = 'none';
+                document.getElementById('hud').style.display = 'block';
+            } else {
+                isPlaying = false;
+                overlay.style.display = 'flex';
+                document.getElementById('hud').style.display = 'none';
+                if (hp > 0) {
+                    document.getElementById('title').innerText = "PAUSED";
+                    startBtn.innerText = "RESUME";
                 }
-            }, { passive: true });
-        }
-
-        function moveLeft() {
-            if (currentLane > 0) {
-                currentLane--;
-                targetX = lanes[currentLane];
             }
-        }
+        });
 
-        function moveRight() {
-            if (currentLane < 2) {
-                currentLane++;
-                targetX = lanes[currentLane];
-            }
-        }
+        function resetGame() {
+            hp = 100;
+            kills = 0;
+            ammo = maxAmmo;
+            isReloading = false;
+            camera.position.set(0, player.height, 0);
+            yaw = 0; pitch = 0;
+            camera.quaternion.setFromEuler(new THREE.Euler(0, 0, 0, 'YXZ'));
 
-        function jump() {
-            if (!isJumping) {
-                isJumping = true;
-                jumpVelocity = jumpPower;
-            }
-        }
+            enemies.forEach(e => scene.remove(e.mesh));
+            enemies.length = 0;
+            bullets.forEach(b => scene.remove(b.mesh));
+            bullets.length = 0;
 
-        // --- Obstacles & Particles ---
-        function spawnObstacle() {
-            const laneIndex = Math.floor(Math.random() * 3);
-            const isTall = Math.random() > 0.7; // Some obstacles are taller
-            
-            const height = isTall ? 2.2 : 1.2;
-            const obsGeo = new THREE.BoxGeometry(1.4, height, 1.4);
-            const obsMat = new THREE.MeshStandardMaterial({ 
-                color: 0xff2a55, 
-                emissive: 0xaa0022,
-                emissiveIntensity: 0.6
-            });
-            
-            const obstacle = new THREE.Mesh(obsGeo, obsMat);
-            obstacle.position.set(lanes[laneIndex], height / 2, -90);
-            
-            scene.add(obstacle);
-            obstacles.push(obstacle);
-        }
-
-        function createExplosion(pos) {
-            for (let i = 0; i < 25; i++) {
-                const pGeo = new THREE.BoxGeometry(0.25, 0.25, 0.25);
-                const pMat = new THREE.MeshBasicMaterial({ color: i % 2 === 0 ? 0x00ffcc : 0xff2a55 });
-                const particle = new THREE.Mesh(pGeo, pMat);
-                particle.position.copy(pos);
-                
-                particle.userData = {
-                    vel: new THREE.Vector3(
-                        (Math.random() - 0.5) * 0.4,
-                        Math.random() * 0.4,
-                        (Math.random() - 0.5) * 0.4
-                    ),
-                    life: 1.0
-                };
-                scene.add(particle);
-                particles.push(particle);
-            }
-        }
-
-        // --- Game Loop & State Management ---
-        function startGame() {
-            // Reset variables
-            score = 0;
-            gameSpeed = 0.4;
-            currentLane = 1;
-            targetX = lanes[currentLane];
-            isJumping = false;
-            jumpVelocity = 0;
-            
-            player.position.set(0, playerBaseY, 0);
-            player.rotation.set(0, 0, 0);
-            player.visible = true;
-
-            // Clear old obstacles
-            obstacles.forEach(obs => scene.remove(obs));
-            obstacles = [];
-
-            scoreEl.innerText = '0';
-            menuScreen.classList.add('hidden');
-            isGameRunning = true;
+            for (let i = 0; i < 6; i++) spawnEnemy();
+            updateHUD();
         }
 
         function gameOver() {
-            isGameRunning = false;
-            player.visible = false;
-            createExplosion(player.position);
-
-            if (score > highScore) {
-                highScore = Math.floor(score);
-                localStorage.setItem('neonRunnerHighScore', highScore);
-                highScoreEl.innerText = highScore;
-            }
-
-            setTimeout(() => {
-                menuTitle.innerText = "GAME OVER";
-                menuDesc.innerHTML = `आपका स्कोर: <b>${Math.floor(score)}</b><br>फिर से खेलने के लिए नीचे दबाएं`;
-                startBtn.innerText = "PLAY AGAIN";
-                menuScreen.classList.remove('hidden');
-            }, 700);
+            isPlaying = false;
+            document.exitPointerLock();
+            document.getElementById('title').innerText = "ELIMINATED";
+            document.getElementById('instructions').innerHTML = `Final Kills: <b>${kills}</b>`;
+            startBtn.innerText = "PLAY AGAIN";
+            startBtn.onclick = () => {
+                resetGame();
+                document.body.requestPointerLock();
+            };
         }
 
-        startBtn.addEventListener('click', startGame);
+        // --- MAIN GAME LOOP ---
+        const clock = new THREE.Clock();
+        resetGame();
 
         function animate() {
             requestAnimationFrame(animate);
+            const dt = Math.min(clock.getDelta(), 0.1);
 
-            // Update Particles
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i];
-                p.position.add(p.userData.vel);
-                p.userData.vel.y -= 0.015;
-                p.userData.life -= 0.03;
-                p.scale.setScalar(Math.max(0, p.userData.life));
-                if (p.userData.life <= 0) {
-                    scene.remove(p);
-                    particles.splice(i, 1);
-                }
+            if (!isPlaying) {
+                renderer.render(scene, camera);
+                return;
             }
 
-            if (isGameRunning) {
-                // Increase score & speed gradually
-                score += 0.15;
-                scoreEl.innerText = Math.floor(score);
-                gameSpeed += 0.00015;
+            // Smooth Gun Recoil Recovery
+            gunGroup.position.z += (-0.5 - gunGroup.position.z) * 15 * dt;
 
-                // Move Grid illusion
-                gridHelper.position.z += gameSpeed;
-                if (gridHelper.position.z > -60) {
-                    gridHelper.position.z = -80;
-                }
+            // Player Movement
+            const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            const moveDir = new THREE.Vector3();
 
-                // Smooth Lane Movement
-                player.position.x += (targetX - player.position.x) * 0.2;
-                player.rotation.z = (player.position.x - targetX) * 0.3; // Tilt effect
+            if (keys['KeyW']) moveDir.add(forward);
+            if (keys['KeyS']) moveDir.sub(forward);
+            if (keys['KeyD']) moveDir.add(right);
+            if (keys['KeyA']) moveDir.sub(right);
+            moveDir.normalize();
 
-                // Jump Physics
-                if (isJumping) {
-                    player.position.y += jumpVelocity;
-                    jumpVelocity += gravity;
-                    player.rotation.x -= 0.12; // Flip animation while jumping
+            // Apply X and Z movement separately for smooth wall sliding
+            const nextPosX = camera.position.clone();
+            nextPosX.x += moveDir.x * player.speed * dt;
+            if (!checkCollision(nextPosX)) camera.position.x = nextPosX.x;
 
-                    if (player.position.y <= playerBaseY) {
-                        player.position.y = playerBaseY;
-                        isJumping = false;
-                        player.rotation.x = 0;
-                    }
-                }
+            const nextPosZ = camera.position.clone();
+            nextPosZ.z += moveDir.z * player.speed * dt;
+            if (!checkCollision(nextPosZ)) camera.position.z = nextPosZ.z;
 
-                // Spawn Obstacles
-                spawnTimer += gameSpeed;
-                if (spawnTimer > 18) {
-                    spawnObstacle();
-                    spawnTimer = 0;
-                }
+            // Gravity & Jumping
+            if (keys['Space'] && player.canJump) {
+                player.velocity.y = 9.0;
+                player.canJump = false;
+            }
+            player.velocity.y -= 24.0 * dt; // Gravity
+            camera.position.y += player.velocity.y * dt;
 
-                // Update & Check Collisions for Obstacles
-                const playerBox = new THREE.Box3().setFromObject(player);
-                // Slightly shrink hitbox for fair gameplay
-                playerBox.expandByScalar(-0.15);
+            if (camera.position.y <= player.height) {
+                camera.position.y = player.height;
+                player.velocity.y = 0;
+                player.canJump = true;
+            }
 
-                for (let i = obstacles.length - 1; i >= 0; i--) {
-                    let obs = obstacles[i];
-                    obs.position.z += gameSpeed;
+            // Update Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                b.mesh.position.addScaledVector(b.dir, b.speed * dt);
+                b.life -= dt;
 
-                    const obsBox = new THREE.Box3().setFromObject(obs);
-                    if (playerBox.intersectsBox(obsBox)) {
-                        gameOver();
+                let hit = false;
+
+                // Wall collision
+                for (let obs of obstacles) {
+                    if (obs.containsPoint(b.mesh.position)) {
+                        hit = true;
                         break;
                     }
+                }
 
-                    // Remove passed obstacles
-                    if (obs.position.z > 10) {
-                        scene.remove(obs);
-                        obstacles.splice(i, 1);
+                // Target collision
+                if (!hit && b.isPlayer) {
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        const enemyBox = new THREE.Box3().setFromObject(e.mesh);
+                        if (enemyBox.containsPoint(b.mesh.position)) {
+                            e.hp -= 35; // 3 shots to kill
+                            hit = true;
+                            if (e.hp <= 0) {
+                                scene.remove(e.mesh);
+                                enemies.splice(j, 1);
+                                kills++;
+                                updateHUD();
+                                spawnEnemy(); // Keep arena populated
+                            }
+                            break;
+                        }
+                    }
+                } else if (!hit && !b.isPlayer) {
+                    if (b.mesh.position.distanceTo(camera.position) < 1.0) {
+                        takeDamage(12);
+                        hit = true;
                     }
                 }
+
+                if (hit || b.life <= 0) {
+                    scene.remove(b.mesh);
+                    bullets.splice(i, 1);
+                }
             }
+
+            // Update Enemies
+            enemies.forEach(e => {
+                const toPlayer = new THREE.Vector3().subVectors(camera.position, e.mesh.position);
+                toPlayer.y = 0;
+                const dist = toPlayer.length();
+                toPlayer.normalize();
+
+                // Face player
+                e.mesh.lookAt(camera.position.x, e.mesh.position.y, camera.position.z);
+
+                // Move toward player if far away
+                if (dist > 12) {
+                    const nextEnemyPos = e.mesh.position.clone().addScaledVector(toPlayer, e.speed * dt);
+                    const enemyBox = new THREE.Box3(
+                        new THREE.Vector3(nextEnemyPos.x - 0.6, 0.1, nextEnemyPos.z - 0.6),
+                        new THREE.Vector3(nextEnemyPos.x + 0.6, 2.2, nextEnemyPos.z + 0.6)
+                    );
+                    let blocked = obstacles.some(obs => enemyBox.intersectsBox(obs));
+                    if (!blocked) e.mesh.position.copy(nextEnemyPos);
+                }
+
+                // Enemy Shooting
+                e.shootTimer -= dt;
+                if (e.shootTimer <= 0 && dist < 50) {
+                    e.shootTimer = 1.5 + Math.random();
+                    const bullet = new THREE.Mesh(bulletGeo, enemyBulletMat);
+                    bullet.position.copy(e.mesh.position);
+                    bullet.position.y += 0.4;
+
+                    const aimDir = new THREE.Vector3().subVectors(camera.position, bullet.position).normalize();
+                    // Add slight inaccuracy
+                    aimDir.x += (Math.random() - 0.5) * 0.08;
+                    aimDir.y += (Math.random() - 0.5) * 0.08;
+                    aimDir.z += (Math.random() - 0.5) * 0.08;
+                    aimDir.normalize();
+
+                    scene.add(bullet);
+                    bullets.push({ mesh: bullet, dir: aimDir, speed: 45, isPlayer: false, life: 2.5 });
+                }
+            });
 
             renderer.render(scene, camera);
         }
 
-        function onWindowResize() {
+        // Handle Window Resize
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
 
-        // Start engine
-        init();
+        animate();
     </script>
 </body>
 </html>
