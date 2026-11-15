@@ -1,716 +1,349 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Werewolf / Killer - Online & Offline</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-  body { overflow: hidden; background: #0a0a12; color: #fff; user-select: none; }
-  #canvas-container { position: fixed; inset: 0; z-index: 1; }
-  
-  /* UI Overlay */
-  #ui-layer { position: fixed; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; }
-  .interactive { pointer-events: auto; }
-  
-  /* Menu Screen */
-  #menu-screen { position: fixed; inset: 0; z-index: 20; background: rgba(10, 12, 22, 0.88); backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-  .title { font-size: 3.5rem; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; background: linear-gradient(45deg, #ff4b2b, #ff416c); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 10px 30px rgba(255,65,108,0.3); }
-  .card { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); padding: 30px; border-radius: 16px; width: 90%; max-width: 420px; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-  input { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.2); padding: 12px 15px; border-radius: 8px; color: #fff; font-size: 1rem; outline: none; }
-  input:focus { border-color: #ff416c; }
-  button { background: linear-gradient(45deg, #ff4b2b, #ff416c); border: none; padding: 12px 20px; border-radius: 8px; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: transform 0.15s, opacity 0.15s; }
-  button:hover { transform: translateY(-2px); opacity: 0.95; }
-  button:disabled { background: #444; cursor: not-allowed; transform: none; }
-  button.secondary { background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); }
-  .row { display: flex; gap: 10px; }
-  .row > * { flex: 1; }
-
-  /* HUD */
-  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; }
-  .status-box { background: rgba(15, 18, 30, 0.8); border: 1px solid rgba(255, 255, 255, 0.15); padding: 15px 25px; border-radius: 12px; backdrop-filter: blur(6px); }
-  #phase-title { font-size: 1.5rem; font-weight: 700; color: #ffbe0b; }
-  #phase-timer { font-size: 1.1rem; color: #ccc; margin-top: 4px; }
-  #role-badge { background: rgba(255, 65, 108, 0.2); border: 1px solid #ff416c; padding: 10px 20px; border-radius: 12px; text-align: right; }
-  #my-role { font-size: 1.3rem; font-weight: 800; text-transform: uppercase; color: #ff416c; }
-
-  /* Bottom Controls & Chat */
-  .bottom-area { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; }
-  .chat-box { width: 340px; height: 220px; background: rgba(15, 18, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
-  #chat-messages { flex: 1; padding: 12px; overflow-y: auto; font-size: 0.9rem; display: flex; flex-direction: column; gap: 6px; }
-  .msg-sys { color: #ffbe0b; font-style: italic; }
-  .msg-alert { color: #ff4b2b; font-weight: bold; }
-  .chat-input-row { display: flex; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-  .chat-input-row input { flex: 1; border: none; border-radius: 0; background: transparent; padding: 10px; }
-  .chat-input-row button { border-radius: 0; padding: 10px 15px; }
-
-  /* Player Action Panel */
-  #action-panel { background: rgba(15, 18, 30, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); padding: 15px; border-radius: 12px; min-width: 280px; max-width: 450px; }
-  #action-prompt { margin-bottom: 10px; font-weight: 600; color: #4cc9f0; }
-  #player-buttons { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .target-btn { padding: 8px 12px; font-size: 0.9rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); text-align: left; display: flex; justify-content: space-between; }
-  .target-btn.selected { background: #ff416c; border-color: #fff; }
-  .target-btn.dead { opacity: 0.4; text-decoration: line-through; pointer-events: none; }
-
-  /* Lobby Info */
-  #lobby-panel { display: none; flex-direction: column; gap: 10px; text-align: center; }
-  .room-code { font-family: monospace; font-size: 1.4rem; background: #000; padding: 8px; border-radius: 6px; color: #4cc9f0; letter-spacing: 2px; user-select: all; }
-</style>
-<!-- Three.js & PeerJS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>3D Endless Runner</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+            z-index: 10;
+        }
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 15px;
+            text-align: center;
+            border: 2px solid #00f2fe;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+            z-index: 20;
+        }
+        #game-over h1 {
+            margin: 0 0 10px 0;
+            color: #ff4b5c;
+            font-size: 36px;
+        }
+        #game-over p {
+            font-size: 22px;
+            margin: 10px 0 25px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #00f2fe, #4facfe);
+            border: none;
+            padding: 12px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #111;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        #controls-hint {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+            pointer-events: none;
+        }
+    </style>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-<div id="canvas-container"></div>
+    <div id="ui">Score: <span id="score">0</span></div>
 
-<!-- Main Menu -->
-<div id="menu-screen">
-  <div class="title">Nightfall 3D</div>
-  <p style="color: #aaa; margin-top: -10px;">Social Deduction • Werewolf / Killer</p>
-  
-  <div class="card" id="setup-card">
-    <input type="text" id="player-name" placeholder="Enter Your Name" value="Player" maxlength="12">
-    <button onclick="startOfflineGame()">Play Offline (vs 5 AI Bots)</button>
-    <div style="text-align: center; color: #777; font-size: 0.85rem;">— OR ONLINE MULTIPLAYER —</div>
-    <button class="secondary" onclick="hostOnlineGame()">Create Online Room</button>
-    <div class="row">
-      <input type="text" id="join-code" placeholder="Room ID">
-      <button class="secondary" onclick="joinOnlineGame()">Join</button>
-    </div>
-  </div>
-
-  <div class="card" id="lobby-panel">
-    <h3>Online Lobby</h3>
-    <p style="font-size: 0.85rem; color: #bbb;">Share this Room ID with friends:</p>
-    <div class="room-code" id="display-room-id">Generating...</div>
-    <div id="lobby-players" style="text-align: left; font-size: 0.95rem; margin: 10px 0;"></div>
-    <button id="start-online-btn" onclick="hostStartMatch()" style="display:none;">Start Match (Min 4 Players)</button>
-    <p id="waiting-msg" style="color: #ffbe0b; font-size: 0.9rem;">Waiting for players...</p>
-  </div>
-</div>
-
-<!-- In-Game HUD -->
-<div id="ui-layer" style="display: none;">
-  <div class="top-bar">
-    <div class="status-box interactive">
-      <div id="phase-title">NIGHT PHASE</div>
-      <div id="phase-timer">Time remaining: 20s</div>
-    </div>
-    <div id="role-badge" class="interactive">
-      <div style="font-size: 0.8rem; color: #ccc;">YOUR ROLE</div>
-      <div id="my-role">VILLAGER</div>
-      <div id="role-desc" style="font-size: 0.8rem; color: #aaa; max-width: 220px; margin-top: 4px;">Find and vote out the Killer during the day.</div>
-    </div>
-  </div>
-
-  <div class="bottom-area">
-    <div class="chat-box interactive">
-      <div id="chat-messages"></div>
-      <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Discuss here..." onkeypress="if(event.key==='Enter') sendChat()">
-        <button onclick="sendChat()">Send</button>
-      </div>
+    <div id="game-over">
+        <h1>GAME OVER!</h1>
+        <p>Final Score: <span id="final-score">0</span></p>
+        <button onclick="resetGame()">Play Again</button>
     </div>
 
-    <div id="action-panel" class="interactive">
-      <div id="action-prompt">Select a player:</div>
-      <div id="player-buttons"></div>
-    </div>
-  </div>
-</div>
+    <div id="controls-hint">Controls: Left/Right Arrows (or A/D) to move • Up Arrow (or W/Space) to Jump • Swipe on Mobile</div>
 
-<script>
-// ==========================================
-// 1. THREE.JS 3D SCENE SETUP
-// ==========================================
-const container = document.getElementById('canvas-container');
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x0a0a16, 0.035);
+    <script>
+        // --- SCENE SETUP ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x16213e);
+        scene.fog = new THREE.Fog(0x16213e, 15, 60);
 
-const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 7, 13);
-camera.lookAt(0, 1, 0);
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 4.5, 8);
+        camera.lookAt(0, 1, -5);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.shadowMap.enabled = true;
-container.appendChild(renderer.domElement);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0x223355, 0.8);
-scene.add(ambientLight);
+        // --- LIGHTING ---
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
 
-const moonLight = new THREE.DirectionalLight(0x6688cc, 0.7);
-moonLight.position.set(10, 20, -10);
-moonLight.castShadow = true;
-scene.add(moonLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
 
-const fireLight = new THREE.PointLight(0xff6611, 2.5, 18);
-fireLight.position.set(0, 1.5, 0);
-fireLight.castShadow = true;
-scene.add(fireLight);
+        // --- GAME VARIABLES ---
+        const lanes = [-2.5, 0, 2.5];
+        let currentLane = 1; // 0 = Left, 1 = Center, 2 = Right
+        let targetX = lanes[currentLane];
 
-// Ground
-const groundGeo = new THREE.CircleGeometry(25, 32);
-const groundMat = new THREE.MeshStandardMaterial({ color: 0x161b22, roughness: 0.9 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI / 2;
-ground.receiveShadow = true;
-scene.add(ground);
+        let isJumping = false;
+        let velocityY = 0;
+        const gravity = -0.025;
+        const jumpPower = 0.45;
 
-// Campfire Logs & Flames
-const logGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.8, 8);
-const logMat = new THREE.MeshStandardMaterial({ color: 0x3d2314 });
-for (let i = 0; i < 4; i++) {
-  const log = new THREE.Mesh(logGeo, logMat);
-  log.position.y = 0.2;
-  log.rotation.z = Math.PI / 2.3;
-  log.rotation.y = (Math.PI / 2) * i;
-  scene.add(log);
-}
+        let gameSpeed = 0.35;
+        let score = 0;
+        let isGameOver = false;
 
-const flameGeo = new THREE.ConeGeometry(0.5, 1.4, 8);
-const flameMat = new THREE.MeshBasicMaterial({ color: 0xff5500 });
-const flame = new THREE.Mesh(flameGeo, flameMat);
-flame.position.y = 0.8;
-scene.add(flame);
+        const obstacles = [];
+        const coins = [];
+        let spawnTimer = 0;
 
-// Trees around perimeter
-const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 3, 6);
-const trunkMat = new THREE.MeshStandardMaterial({ color: 0x241710 });
-const leavesGeo = new THREE.ConeGeometry(1.8, 4.5, 7);
-const leavesMat = new THREE.MeshStandardMaterial({ color: 0x0d2618 });
+        // --- PLAYER (RUNNER) ---
+        const playerGeo = new THREE.BoxGeometry(0.9, 1.4, 0.9);
+        const playerMat = new THREE.MeshStandardMaterial({ color: 0x00f2fe, roughness: 0.3 });
+        const player = new THREE.Mesh(playerGeo, playerMat);
+        player.position.set(0, 0.7, 0);
+        player.castShadow = true;
+        scene.add(player);
 
-for (let i = 0; i < 18; i++) {
-  const angle = (i / 18) * Math.PI * 2;
-  const dist = 12 + Math.random() * 5;
-  const tree = new THREE.Group();
-  const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-  trunk.position.y = 1.5;
-  const leaves = new THREE.Mesh(leavesGeo, leavesMat);
-  leaves.position.y = 4.2;
-  tree.add(trunk, leaves);
-  tree.position.set(Math.cos(angle) * dist, 0, Math.sin(angle) * dist);
-  scene.add(tree);
-}
+        // --- TRACK / GROUND ---
+        const trackGeo = new THREE.PlaneGeometry(10, 200);
+        const trackMat = new THREE.MeshStandardMaterial({ color: 0x0f3460 });
+        const track = new THREE.Mesh(trackGeo, trackMat);
+        track.rotation.x = -Math.PI / 2;
+        track.position.z = -80;
+        track.receiveShadow = true;
+        scene.add(track);
 
-// Player 3D Avatars Container
-let avatarMeshes = {};
-const avatarColors = [0xff4b2b, 0x4cc9f0, 0xffbe0b, 0x8ac926, 0x9b5de5, 0xf15bb5, 0x00f5d4, 0xfee440];
+        // Lane dividers
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xe94560 });
+        [-1.25, 1.25].forEach(xPos => {
+            const lineGeo = new THREE.PlaneGeometry(0.1, 200);
+            const line = new THREE.Mesh(lineGeo, lineMat);
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(xPos, 0.01, -80);
+            scene.add(line);
+        });
 
-function createNameSprite(text, isDead = false) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = isDead ? 'rgba(150,0,0,0.7)' : 'rgba(0,0,0,0.6)';
-  ctx.fillRect(28, 10, 200, 44);
-  ctx.font = 'bold 26px sans-serif';
-  ctx.fillStyle = isDead ? '#ff8888' : '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.fillText(isDead ? `💀 ${text}` : text, 128, 40);
-  
-  const tex = new THREE.CanvasTexture(canvas);
-  const mat = new THREE.SpriteMaterial({ map: tex });
-  const sprite = new THREE.Sprite(mat);
-  sprite.scale.set(2.8, 0.7, 1);
-  sprite.position.y = 2.7;
-  return sprite;
-}
+        // --- SPAWN FUNCTIONS ---
+        function spawnObject() {
+            const laneIndex = Math.floor(Math.random() * 3);
+            const xPos = lanes[laneIndex];
+            const zPos = -70;
 
-function build3DPlayers(playersList) {
-  Object.values(avatarMeshes).forEach(m => scene.remove(m));
-  avatarMeshes = {};
-  const radius = 5.2;
-  
-  playersList.forEach((p, idx) => {
-    const angle = (idx / playersList.length) * Math.PI * 2;
-    const group = new THREE.Group();
-    
-    // Body
-    const bodyGeo = new THREE.CylinderGeometry(0.45, 0.55, 1.4, 12);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: p.alive ? avatarColors[idx % avatarColors.length] : 0x333333 });
-    const body = new THREE.Mesh(bodyGeo, bodyMat);
-    body.position.y = 0.7;
-    body.castShadow = true;
-    
-    // Head
-    const headGeo = new THREE.SphereGeometry(0.42, 16, 16);
-    const headMat = new THREE.MeshStandardMaterial({ color: p.alive ? 0xffdbac : 0x555555 });
-    const head = new THREE.Mesh(headGeo, headMat);
-    head.position.y = 1.75;
-    head.castShadow = true;
-
-    const label = createNameSprite(p.name, !p.alive);
-    group.add(body, head, label);
-    
-    group.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-    group.lookAt(0, 0, 0);
-    if (!p.alive) {
-      group.rotation.x = Math.PI / 2;
-      group.position.y = 0.4;
-    }
-    scene.add(group);
-    avatarMeshes[p.id] = group;
-  });
-}
-
-// Camera Orbit & Animation Loop
-let camAngle = 0;
-let isDragging = false, prevMouseX = 0;
-window.addEventListener('mousedown', e => { isDragging = true; prevMouseX = e.clientX; });
-window.addEventListener('mouseup', () => isDragging = false);
-window.addEventListener('mousemove', e => {
-  if (isDragging) {
-    camAngle -= (e.clientX - prevMouseX) * 0.007;
-    prevMouseX = e.clientX;
-  }
-});
-
-let isDay = false;
-function animate(time) {
-  requestAnimationFrame(animate);
-  
-  // Flicker fire
-  flame.scale.y = 0.9 + Math.sin(time * 0.015) * 0.2;
-  fireLight.intensity = 2.2 + Math.cos(time * 0.02) * 0.4;
-
-  // Smooth Day/Night Lighting Transition
-  const targetAmbient = isDay ? 2.2 : 0.6;
-  const targetFog = isDay ? 0x4a6b82 : 0x0a0a16;
-  ambientLight.intensity += (targetAmbient - ambientLight.intensity) * 0.05;
-  scene.fog.color.lerp(new THREE.Color(targetFog), 0.05);
-  renderer.setClearColor(scene.fog.color);
-
-  // Camera position
-  camera.position.x = Math.sin(camAngle) * 12.5;
-  camera.position.z = Math.cos(camAngle) * 12.5;
-  camera.lookAt(0, 1.2, 0);
-
-  renderer.render(scene, camera);
-}
-animate(0);
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ==========================================
-// 2. GAME STATE & ENGINE (OFFLINE + ONLINE)
-// ==========================================
-let mode = 'offline'; // 'offline' or 'online'
-let isHost = true;
-let myId = 'player_0';
-let myName = 'Player';
-let peer = null;
-let connections = []; // Host keeps client connections
-let hostConn = null;    // Client keeps host connection
-
-let gameState = {
-  phase: 'LOBBY', // NIGHT, DAY, VOTING, GAMEOVER
-  timer: 0,
-  players: [], // { id, name, role, alive, isBot, targetId }
-  dayCount: 1
-};
-
-let selectedTargetId = null;
-let timerInterval = null;
-
-const ROLE_INFO = {
-  KILLER: { color: '#ff4b2b', desc: 'Eliminate a villager every night without getting caught.' },
-  DOCTOR: { color: '#4cc9f0', desc: 'Choose one player each night to protect from the Killer.' },
-  DETECTIVE: { color: '#ffbe0b', desc: 'Investigate one player each night to learn if they are the Killer.' },
-  VILLAGER: { color: '#8ac926', desc: 'Discuss during the day and vote out the Killer.' }
-};
-
-function logChat(text, type = '') {
-  const box = document.getElementById('chat-messages');
-  const div = document.createElement('div');
-  if (type) div.className = type;
-  div.textContent = text;
-  box.appendChild(div);
-  box.scrollTop = box.scrollHeight;
-}
-
-// ==========================================
-// 3. OFFLINE MODE SETUP
-// ==========================================
-function startOfflineGame() {
-  mode = 'offline';
-  isHost = true;
-  myName = document.getElementById('player-name').value.trim() || 'Player';
-  myId = 'p0';
-  
-  const botNames = ['Alex', 'Luna', 'Marcus', 'Elena', 'Viktor'];
-  gameState.players = [{ id: myId, name: myName, role: '', alive: true, isBot: false, targetId: null }];
-  botNames.forEach((b, i) => {
-    gameState.players.push({ id: 'bot' + i, name: b, role: '', alive: true, isBot: true, targetId: null });
-  });
-
-  document.getElementById('menu-screen').style.display = 'none';
-  document.getElementById('ui-layer').style.display = 'flex';
-  assignRolesAndStart();
-}
-
-// ==========================================
-// 4. ONLINE PEERJS MULTIPLAYER SETUP
-// ==========================================
-function hostOnlineGame() {
-  mode = 'online';
-  isHost = true;
-  myName = document.getElementById('player-name').value.trim() || 'Host';
-  const shortCode = Math.random().toString(36).substring(2, 7).toUpperCase();
-  myId = 'NW-' + shortCode;
-
-  document.getElementById('setup-card').style.display = 'none';
-  document.getElementById('lobby-panel').style.display = 'flex';
-  document.getElementById('display-room-id').textContent = shortCode;
-
-  peer = new Peer(myId);
-  peer.on('open', () => {
-    gameState.players = [{ id: myId, name: myName, role: '', alive: true, isBot: false, targetId: null }];
-    updateLobbyUI();
-  });
-
-  peer.on('connection', conn => {
-    connections.push(conn);
-    conn.on('data', data => handleNetworkData(conn.peer, data));
-    conn.on('close', () => {
-      gameState.players = gameState.players.filter(p => p.id !== conn.peer);
-      broadcastState();
-      updateLobbyUI();
-    });
-  });
-}
-
-function joinOnlineGame() {
-  mode = 'online';
-  isHost = false;
-  myName = document.getElementById('player-name').value.trim() || 'Guest';
-  const code = document.getElementById('join-code').value.trim().toUpperCase();
-  if (!code) return alert('Enter a Room ID');
-
-  document.getElementById('setup-card').style.display = 'none';
-  document.getElementById('lobby-panel').style.display = 'flex';
-  document.getElementById('display-room-id').textContent = code;
-
-  peer = new Peer();
-  peer.on('open', id => {
-    myId = id;
-    hostConn = peer.connect('NW-' + code);
-    hostConn.on('open', () => {
-      hostConn.send({ type: 'JOIN', name: myName });
-    });
-    hostConn.on('data', data => {
-      if (data.type === 'STATE') {
-        gameState = data.state;
-        if (gameState.phase === 'LOBBY') {
-          updateLobbyUI();
-        } else {
-          document.getElementById('menu-screen').style.display = 'none';
-          document.getElementById('ui-layer').style.display = 'flex';
-          syncClientUI();
+            // 70% chance obstacle, 30% chance coin
+            if (Math.random() < 0.7) {
+                const isTall = Math.random() > 0.7;
+                const height = isTall ? 2.2 : 1.0;
+                const obsGeo = new THREE.BoxGeometry(1.4, height, 1.2);
+                const obsMat = new THREE.MeshStandardMaterial({ color: 0xff4b5c });
+                const obs = new THREE.Mesh(obsGeo, obsMat);
+                obs.position.set(xPos, height / 2, zPos);
+                obs.castShadow = true;
+                scene.add(obs);
+                obstacles.push(obs);
+            } else {
+                const coinGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.15, 16);
+                const coinMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.7, roughness: 0.2 });
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                coin.rotation.x = Math.PI / 2;
+                coin.position.set(xPos, 0.8, zPos);
+                scene.add(coin);
+                coins.push(coin);
+            }
         }
-      } else if (data.type === 'CHAT') {
-        logChat(data.msg, data.style);
-      }
-    });
-  });
-}
 
-function handleNetworkData(senderId, data) {
-  if (!isHost) return;
-  if (data.type === 'JOIN') {
-    gameState.players.push({ id: senderId, name: data.name, role: '', alive: true, isBot: false, targetId: null });
-    updateLobbyUI();
-    broadcastState();
-  } else if (data.type === 'ACTION') {
-    const p = gameState.players.find(x => x.id === senderId);
-    if (p) p.targetId = data.targetId;
-  } else if (data.type === 'CHAT') {
-    broadcastChat(data.msg, '');
-  }
-}
+        // --- CONTROLS (KEYBOARD & TOUCH) ---
+        function moveLeft() {
+            if (currentLane > 0 && !isGameOver) {
+                currentLane--;
+                targetX = lanes[currentLane];
+            }
+        }
 
-function updateLobbyUI() {
-  const list = document.getElementById('lobby-players');
-  list.innerHTML = '<strong>Players Connected (' + gameState.players.length + '):</strong><br>' + 
-    gameState.players.map(p => `• ${p.name}`).join('<br>');
-  if (isHost && gameState.players.length >= 4) {
-    document.getElementById('start-online-btn').style.display = 'block';
-    document.getElementById('waiting-msg').style.display = 'none';
-  }
-}
+        function moveRight() {
+            if (currentLane < 2 && !isGameOver) {
+                currentLane++;
+                targetX = lanes[currentLane];
+            }
+        }
 
-function hostStartMatch() {
-  if (!isHost) return;
-  document.getElementById('menu-screen').style.display = 'none';
-  document.getElementById('ui-layer').style.display = 'flex';
-  assignRolesAndStart();
-}
+        function jump() {
+            if (!isJumping && !isGameOver) {
+                isJumping = true;
+                velocityY = jumpPower;
+            }
+        }
 
-function broadcastState() {
-  if (mode === 'online' && isHost) {
-    connections.forEach(c => c.send({ type: 'STATE', state: gameState }));
-  }
-  syncClientUI();
-}
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+            if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') jump();
+        });
 
-function broadcastChat(msg, style = '') {
-  logChat(msg, style);
-  if (mode === 'online' && isHost) {
-    connections.forEach(c => c.send({ type: 'CHAT', msg, style }));
-  }
-}
+        // Mobile Swipe Controls
+        let touchStartX = 0;
+        let touchStartY = 0;
+        window.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+        });
 
-// ==========================================
-// 5. CORE GAMEPLAY LOOP (HOST AUTHORITY)
-// ==========================================
-function assignRolesAndStart() {
-  const count = gameState.players.length;
-  let roles = ['KILLER', 'DOCTOR', 'DETECTIVE'];
-  while (roles.length < count) roles.push('VILLAGER');
-  roles.sort(() => Math.random() - 0.5);
+        window.addEventListener('touchend', e => {
+            let dx = e.changedTouches[0].screenX - touchStartX;
+            let dy = e.changedTouches[0].screenY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                if (dx > 30) moveRight();
+                else if (dx < -30) moveLeft();
+            } else {
+                if (dy < -30) jump();
+            }
+        });
 
-  gameState.players.forEach((p, i) => {
-    p.role = roles[i];
-    p.alive = true;
-    p.targetId = null;
-  });
+        // --- COLLISION & RESET ---
+        function checkCollision(obj1, obj2) {
+            const box1 = new THREE.Box3().setFromObject(obj1);
+            const box2 = new THREE.Box3().setFromObject(obj2);
+            // Slightly shrink hitbox for fair gameplay
+            box1.expandByScalar(-0.1);
+            box2.expandByScalar(-0.1);
+            return box1.intersectsBox(box2);
+        }
 
-  broadcastChat('The match has begun! Night falls over the camp...', 'msg-sys');
-  startNightPhase();
-}
+        function triggerGameOver() {
+            isGameOver = true;
+            document.getElementById('final-score').innerText = Math.floor(score);
+            document.getElementById('game-over').style.display = 'block';
+        }
 
-function startNightPhase() {
-  gameState.phase = 'NIGHT';
-  gameState.timer = 15;
-  selectedTargetId = null;
-  gameState.players.forEach(p => p.targetId = null);
+        function resetGame() {
+            obstacles.forEach(obs => scene.remove(obs));
+            coins.forEach(coin => scene.remove(coin));
+            obstacles.length = 0;
+            coins.length = 0;
 
-  // Bot Night Actions
-  gameState.players.filter(p => p.isBot && p.alive).forEach(bot => {
-    const others = gameState.players.filter(x => x.alive && x.id !== bot.id);
-    if (others.length > 0 && ['KILLER', 'DOCTOR', 'DETECTIVE'].includes(bot.role)) {
-      bot.targetId = others[Math.floor(Math.random() * others.length)].id;
-    }
-  });
+            currentLane = 1;
+            targetX = lanes[currentLane];
+            player.position.set(0, 0.7, 0);
+            isJumping = false;
+            velocityY = 0;
+            gameSpeed = 0.35;
+            score = 0;
+            isGameOver = false;
 
-  broadcastState();
-  runTimer(() => resolveNight());
-}
+            document.getElementById('score').innerText = '0';
+            document.getElementById('game-over').style.display = 'none';
+        }
 
-function resolveNight() {
-  const killer = gameState.players.find(p => p.role === 'KILLER' && p.alive);
-  const doctor = gameState.players.find(p => p.role === 'DOCTOR' && p.alive);
-  
-  let victim = killer && killer.targetId ? gameState.players.find(p => p.id === killer.targetId) : null;
-  const saved = doctor && doctor.targetId ? doctor.targetId : null;
+        // --- MAIN GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
 
-  broadcastChat(`--- DAY ${gameState.dayCount} ---`, 'msg-sys');
-  if (victim && victim.id !== saved) {
-    victim.alive = false;
-    broadcastChat(`Tragedy! ${victim.name} was eliminated during the night.`, 'msg-alert');
-  } else {
-    broadcastChat(`Miraculously, nobody died last night!`, 'msg-sys');
-  }
+            if (!isGameOver) {
+                // Smooth lane switching
+                player.position.x += (targetX - player.position.x) * 0.2;
 
-  if (checkWinCondition()) return;
-  startDayPhase();
-}
+                // Jump physics
+                if (isJumping) {
+                    player.position.y += velocityY;
+                    velocityY += gravity;
+                    if (player.position.y <= 0.7) {
+                        player.position.y = 0.7;
+                        isJumping = false;
+                        velocityY = 0;
+                    }
+                } else {
+                    // Subtle running bounce effect
+                    player.position.y = 0.7 + Math.abs(Math.sin(Date.now() * 0.015)) * 0.1;
+                }
 
-function startDayPhase() {
-  gameState.phase = 'DAY';
-  gameState.timer = 20;
-  selectedTargetId = null;
-  broadcastState();
+                // Spawn logic
+                spawnTimer++;
+                if (spawnTimer > Math.max(25, 55 - gameSpeed * 30)) {
+                    spawnObject();
+                    spawnTimer = 0;
+                }
 
-  // Bot Day Chatter
-  setTimeout(() => {
-    if (gameState.phase !== 'DAY') return;
-    const aliveBots = gameState.players.filter(p => p.isBot && p.alive);
-    if (aliveBots.length > 0) {
-      const speaker = aliveBots[Math.floor(Math.random() * aliveBots.length)];
-      const suspect = gameState.players.filter(p => p.alive && p.id !== speaker.id)[0];
-      if (suspect) broadcastChat(`${speaker.name}: I have a bad feeling about ${suspect.name}...`);
-    }
-  }, 4000);
+                // Move & check obstacles
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    let obs = obstacles[i];
+                    obs.position.z += gameSpeed;
 
-  runTimer(() => startVotingPhase());
-}
+                    if (checkCollision(player, obs)) {
+                        triggerGameOver();
+                    }
 
-function startVotingPhase() {
-  gameState.phase = 'VOTING';
-  gameState.timer = 15;
-  selectedTargetId = null;
-  gameState.players.forEach(p => p.targetId = null);
+                    if (obs.position.z > 10) {
+                        scene.remove(obs);
+                        obstacles.splice(i, 1);
+                    }
+                }
 
-  // Bot Votes
-  gameState.players.filter(p => p.isBot && p.alive).forEach(bot => {
-    const candidates = gameState.players.filter(x => x.alive && x.id !== bot.id);
-    if (candidates.length > 0) {
-      bot.targetId = candidates[Math.floor(Math.random() * candidates.length)].id;
-    }
-  });
+                // Move & check coins
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    let coin = coins[i];
+                    coin.position.z += gameSpeed;
+                    coin.rotation.z += 0.05;
 
-  broadcastChat('Voting has started! Choose who to eliminate.', 'msg-sys');
-  broadcastState();
-  runTimer(() => resolveVoting());
-}
+                    if (checkCollision(player, coin)) {
+                        score += 50;
+                        scene.remove(coin);
+                        coins.splice(i, 1);
+                        continue;
+                    }
 
-function resolveVoting() {
-  const tally = {};
-  gameState.players.filter(p => p.alive && p.targetId).forEach(p => {
-    tally[p.targetId] = (tally[p.targetId] || 0) + 1;
-  });
+                    if (coin.position.z > 10) {
+                        scene.remove(coin);
+                        coins.splice(i, 1);
+                    }
+                }
 
-  let maxVotes = 0, eliminatedId = null, tie = false;
-  for (const [id, count] of Object.entries(tally)) {
-    if (count > maxVotes) { maxVotes = count; eliminatedId = id; tie = false; }
-    else if (count === maxVotes) { tie = true; }
-  }
+                // Increase score & speed gradually
+                score += 0.2;
+                gameSpeed += 0.0001;
+                document.getElementById('score').innerText = Math.floor(score);
+            }
 
-  if (eliminatedId && !tie) {
-    const target = gameState.players.find(p => p.id === eliminatedId);
-    target.alive = false;
-    broadcastChat(`The camp voted out ${target.name}! Their role was ${target.role}.`, 'msg-alert');
-  } else {
-    broadcastChat('The vote ended in a tie. Nobody was eliminated.', 'msg-sys');
-  }
+            renderer.render(scene, camera);
+        }
 
-  gameState.dayCount++;
-  if (checkWinCondition()) return;
-  startNightPhase();
-}
+        // Handle Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
 
-function checkWinCondition() {
-  const killerAlive = gameState.players.some(p => p.role === 'KILLER' && p.alive);
-  const villagersAlive = gameState.players.filter(p => p.role !== 'KILLER' && p.alive).length;
-
-  if (!killerAlive) {
-    gameState.phase = 'GAMEOVER';
-    broadcastChat('VICTORY! The Killer has been eliminated. Villagers win!', 'msg-sys');
-    broadcastState();
-    return true;
-  }
-  if (villagersAlive <= 1) {
-    gameState.phase = 'GAMEOVER';
-    broadcastChat('DEFEAT! The Killer has overtaken the camp!', 'msg-alert');
-    broadcastState();
-    return true;
-  }
-  return false;
-}
-
-function runTimer(onComplete) {
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    gameState.timer--;
-    broadcastState();
-    if (gameState.timer <= 0) {
-      clearInterval(timerInterval);
-      onComplete();
-    }
-  }, 1000);
-}
-
-// ==========================================
-// 6. CLIENT UI & PLAYER INTERACTIONS
-// ==========================================
-function syncClientUI() {
-  isDay = (gameState.phase === 'DAY' || gameState.phase === 'VOTING');
-  build3DPlayers(gameState.players);
-
-  const me = gameState.players.find(p => p.id === myId);
-  if (!me) return;
-
-  document.getElementById('phase-title').textContent = `${gameState.phase} PHASE`;
-  document.getElementById('phase-timer').textContent = gameState.phase === 'GAMEOVER' ? 'Match Ended' : `Time remaining: ${gameState.timer}s`;
-  
-  const roleEl = document.getElementById('my-role');
-  roleEl.textContent = me.role + (me.alive ? '' : ' (DEAD)');
-  roleEl.style.color = ROLE_INFO[me.role]?.color || '#fff';
-  document.getElementById('role-desc').textContent = ROLE_INFO[me.role]?.desc || '';
-
-  // Action Buttons
-  const promptEl = document.getElementById('action-prompt');
-  const btnContainer = document.getElementById('player-buttons');
-  btnContainer.innerHTML = '';
-
-  if (gameState.phase === 'GAMEOVER') {
-    promptEl.textContent = 'Game Over!';
-    const restartBtn = document.createElement('button');
-    restartBtn.textContent = 'Back to Menu';
-    restartBtn.onclick = () => location.reload();
-    btnContainer.appendChild(restartBtn);
-    return;
-  }
-
-  if (!me.alive) {
-    promptEl.textContent = 'You are eliminated. Watch as a ghost.';
-    return;
-  }
-
-  let canAct = false;
-  if (gameState.phase === 'VOTING') {
-    promptEl.textContent = 'Vote to eliminate a suspect:';
-    canAct = true;
-  } else if (gameState.phase === 'NIGHT') {
-    if (me.role === 'KILLER') { promptEl.textContent = 'Choose a target to eliminate:'; canAct = true; }
-    else if (me.role === 'DOCTOR') { promptEl.textContent = 'Choose a player to protect:'; canAct = true; }
-    else if (me.role === 'DETECTIVE') { promptEl.textContent = 'Choose a player to investigate:'; canAct = true; }
-    else { promptEl.textContent = 'Sleep tight... waiting for night to end.'; }
-  } else {
-    promptEl.textContent = 'Discuss in chat before voting begins!';
-  }
-
-  if (canAct) {
-    gameState.players.forEach(p => {
-      if (p.id === myId && me.role !== 'DOCTOR') return; // Can't kill/vote self
-      const btn = document.createElement('button');
-      btn.className = 'target-btn' + (!p.alive ? ' dead' : '') + (selectedTargetId === p.id ? ' selected' : '');
-      btn.innerHTML = `<span>${p.name}</span><span>${selectedTargetId === p.id ? '✔' : ''}</span>`;
-      btn.onclick = () => submitTarget(p);
-      btnContainer.appendChild(btn);
-    });
-  }
-}
-
-function submitTarget(targetPlayer) {
-  selectedTargetId = targetPlayer.id;
-  const me = gameState.players.find(p => p.id === myId);
-
-  // Instant feedback for Detective
-  if (gameState.phase === 'NIGHT' && me.role === 'DETECTIVE') {
-    logChat(`[Investigation] ${targetPlayer.name} is ${targetPlayer.role === 'KILLER' ? 'THE KILLER!' : 'innocent.'}`, 'msg-sys');
-  }
-
-  if (isHost) {
-    me.targetId = targetPlayer.id;
-  } else if (hostConn) {
-    hostConn.send({ type: 'ACTION', targetId: targetPlayer.id });
-  }
-  syncClientUI();
-}
-
-function sendChat() {
-  const input = document.getElementById('chat-input');
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-
-  const me = gameState.players.find(p => p.id === myId);
-  if (!me || !me.alive) return logChat('Dead players cannot speak!', 'msg-sys');
-
-  const formatted = `${me.name}: ${text}`;
-  if (isHost) {
-    broadcastChat(formatted);
-  } else if (hostConn) {
-    hostConn.send({ type: 'CHAT', msg: formatted });
-  }
-}
-</script>
+        animate();
+    </script>
 </body>
 </html>
