@@ -2,255 +2,993 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Free Fire - Battle Royale Experience</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Relic Runner 3D</title>
     <style>
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            overflow: hidden;
+            background-color: #0d131a;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        body {
-            background-color: #0b0e14;
-            color: #ffffff;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            overflow-x: hidden;
-            background-image: linear-gradient(rgba(11, 14, 20, 0.8), rgba(11, 14, 20, 0.95)), 
-                              url('https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1920&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
         }
-
-        header {
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 20px 30px;
-            background: rgba(15, 20, 30, 0.85);
-            border-bottom: 2px solid #ff4600;
+            pointer-events: none;
+            z-index: 10;
         }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 900;
-            color: #ff4600;
+        .hud-box {
+            background: rgba(15, 20, 25, 0.75);
+            border: 2px solid #d4af37;
+            border-radius: 10px;
+            padding: 10px 20px;
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        .hud-label {
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            text-shadow: 0 0 10px rgba(255, 70, 0, 0.6);
+            letter-spacing: 1.5px;
+            color: #d4af37;
         }
-
-        .nav-links {
-            display: flex;
-            gap: 20px;
+        .hud-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 2px;
         }
-
-        .nav-links a {
-            color: #b0b0b0;
-            text-decoration: none;
-            font-weight: 600;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #ff4600;
-        }
-
-        .main-container {
+        /* Screens */
+        .overlay-screen {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle, rgba(20,28,36,0.85) 0%, rgba(10,14,18,0.96) 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
-            padding: 40px 20px;
-            flex-grow: 1;
-        }
-
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            color: #fff;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        h1 span {
-            color: #ff4600;
-        }
-
-        p.subtitle {
-            font-size: 1.1rem;
-            color: #cfcfcf;
-            max-width: 600px;
-            margin-bottom: 30px;
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: 40px;
-        }
-
-        .feature-card {
-            background: rgba(22, 28, 40, 0.9);
-            border: 1px solid #2a3447;
-            border-radius: 8px;
-            padding: 25px;
-            text-align: left;
-            transition: transform 0.3s, border-color 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            border-color: #ff4600;
-        }
-
-        .feature-card h3 {
-            color: #ff4600;
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-        }
-
-        .feature-card p {
-            color: #a0a0a0;
-            font-size: 0.95rem;
-        }
-
-        .cta-button {
-            background: linear-gradient(135deg, #ff4600, #ff8c00);
             color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            border-radius: 4px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(255, 70, 0, 0.4);
-            transition: opacity 0.2s, transform 0.2s;
-        }
-
-        .cta-button:hover {
-            opacity: 0.9;
-            transform: scale(1.05);
-        }
-
-        footer {
+            z-index: 20;
             text-align: center;
             padding: 20px;
-            background: rgba(10, 13, 18, 0.95);
-            font-size: 0.85rem;
-            color: #707070;
-            border-top: 1px solid #222;
         }
-
-        /* Modal / Alert Box style for interaction */
-        #drop-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
+        h1 {
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            color: #f5c542;
+            text-shadow: 0 5px 20px rgba(245, 197, 66, 0.4);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        p.subtitle {
+            color: #b0bec5;
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+        .controls-guide {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 35px;
+            flex-wrap: wrap;
             justify-content: center;
-            align-items: center;
-            z-index: 100;
         }
-
-        .modal-content {
-            background: #161c28;
-            padding: 30px;
-            border-radius: 8px;
-            border: 2px solid #ff4600;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
+        .key-badge {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            color: #e0e0e0;
         }
-
-        .modal-content h2 {
-            color: #ff4600;
-            margin-bottom: 15px;
+        .key-badge span {
+            color: #f5c542;
+            font-weight: bold;
         }
-
-        .modal-content p {
-            margin-bottom: 20px;
-            color: #d0d0d0;
-        }
-
-        .close-btn {
-            background: #2a3447;
-            color: white;
+        button.btn {
+            background: linear-gradient(135deg, #f5c542 0%, #c79100 100%);
+            color: #111;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 16px 45px;
+            font-size: 1.3rem;
+            font-weight: 800;
+            border-radius: 50px;
             cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 6px 25px rgba(245, 197, 66, 0.4);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        button.btn:hover {
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 10px 30px rgba(245, 197, 66, 0.6);
+        }
+        button.btn:active {
+            transform: translateY(1px);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .stats-summary {
+            margin: 20px 0 30px;
+            font-size: 1.3rem;
+            line-height: 1.8;
+        }
+        .stats-summary span {
+            color: #f5c542;
+            font-weight: bold;
         }
     </style>
+    <!-- Load Three.js from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
-    <header>
-        <div class="logo">🔥 Free Fire</div>
-        <nav class="nav-links">
-            <a href="#overview">Overview</a>
-            <a href="#characters">Characters</a>
-            <a href="#modes">Modes</a>
-        </nav>
-    </header>
-
-    <div class="main-container" id="overview">
-        <h1>Battle In <span>Style</span></h1>
-        <p class="subtitle">Survive against 50 players on a remote island, scavenge for weapons, and outlast the shrinking safe zone to claim the ultimate Booyah!</p>
-
-        <div class="card-grid" id="characters">
-            <div class="feature-card">
-                <h3>⚡ Fast-Paced Matches</h3>
-                <p>10-minute survival matches designed to deliver high-octane action on the go.</p>
-            </div>
-            <div class="feature-card">
-                <h3>🛡️ Custom Loadouts</h3>
-                <p>Equip unique character skills, pets, and camouflage to gain tactical advantages.</p>
-            </div>
-            <div class="feature-card">
-                <h3>🏆 Ranked Squads</h3>
-                <p>Team up with friends in 4-player squads with in-game voice chat and coordination.</p>
-            </div>
+<div id="game-container">
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+        <div class="hud-box">
+            <div class="hud-label">Distance</div>
+            <div class="hud-value" id="score-display">0m</div>
         </div>
-
-        <button class="cta-button" onclick="triggerDrop()">Parachute In</button>
-    </div>
-
-    <!-- Interactive Modal -->
-    <div id="drop-modal">
-        <div class="modal-content">
-            <h2>Mission Status</h2>
-            <p id="modal-text">Dropping into Bermuda... Scavenging for loot...</p>
-            <button class="close-btn" onclick="closeModal()">Close</button>
+        <div class="hud-box">
+            <div class="hud-label">Relic Coins</div>
+            <div class="hud-value" id="coins-display">0</div>
         </div>
     </div>
 
-    <footer>
-        <p>&copy; 2026 Free Fire Fan Concept. Designed with HTML & CSS.</p>
-    </footer>
+    <!-- Start Screen -->
+    <div id="start-screen" class="overlay-screen">
+        <h1>Relic Runner</h1>
+        <p class="subtitle">Escape the cursed jungle temple! Dodge ancient traps, leap over chasms, and collect golden idols.</p>
+        <div class="controls-guide">
+            <div class="key-badge"><span>A / D</span> or <span>◀ / ▶</span> Lane</div>
+            <div class="key-badge"><span>W / Space</span> or <span>▲</span> Jump</div>
+            <div class="key-badge"><span>S</span> or <span>▼</span> Slide</div>
+        </div>
+        <button class="btn" id="start-btn">Run Now</button>
+    </div>
 
-    <script>
-        function triggerDrop() {
-            const modal = document.getElementById('drop-modal');
-            const modalText = document.getElementById('modal-text');
-            
-            modal.style.display = 'flex';
-            modalText.innerHTML = "✈️ Boarding the flight over Bermuda...<br><br><b>BOOYAH!</b> You successfully secured the tactical advantage!";
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="overlay-screen hidden">
+        <h1>Caught!</h1>
+        <div class="stats-summary">
+            Distance Traveled: <span id="final-score">0m</span><br>
+            Coins Collected: <span id="final-coins">0</span><br>
+            Best Distance: <span id="best-score">0m</span>
+        </div>
+        <button class="btn" id="restart-btn">Run Again</button>
+    </div>
+</div>
+
+<script>
+/**
+ * RELIC RUNNER 3D - Complete Three.js Endless Runner
+ */
+
+// --- GAME CONFIGURATION ---
+const CONFIG = {
+    laneWidth: 3.2,
+    lanes: [-3.2, 0, 3.2],
+    initialSpeed: 24,
+    maxSpeed: 55,
+    speedIncrement: 0.45,
+    gravity: -68,
+    jumpForce: 22,
+    slideDuration: 0.65,
+    segmentLength: 10,
+    visibleSegments: 18
+};
+
+// --- GLOBAL VARIABLES ---
+let scene, camera, renderer, clock;
+let player, playerGroup, leftLeg, rightLeg, leftArm, rightArm, torso, head;
+let segments = [];
+let obstacles = [];
+let coins = [];
+let particles = [];
+let environmentProps = [];
+
+// Game State
+let isPlaying = false;
+let score = 0;
+let coinCount = 0;
+let bestScore = localStorage.getItem('relicRunnerBest') || 0;
+let currentSpeed = CONFIG.initialSpeed;
+let currentLane = 1; // 0: Left, 1: Center, 2: Right
+let targetX = 0;
+
+// Physics State
+let playerY = 0;
+let velocityY = 0;
+let isJumping = false;
+let isSliding = false;
+let slideTimer = 0;
+let runCycle = 0;
+
+// Procedural Materials & Textures
+let stoneTexture, grassTexture, goldMaterial, dangerMaterial, woodMaterial, pillarMaterial;
+
+// DOM Elements
+const hud = document.getElementById('hud');
+const scoreDisplay = document.getElementById('score-display');
+const coinsDisplay = document.getElementById('coins-display');
+const startScreen = document.getElementById('start-screen');
+const gameOverScreen = document.getElementById('gameover-screen');
+const finalScoreEl = document.getElementById('final-score');
+const finalCoinsEl = document.getElementById('final-coins');
+const bestScoreEl = document.getElementById('best-score');
+
+// --- INITIALIZATION ---
+function init() {
+    clock = new THREE.Clock();
+
+    // 1. Scene & Atmosphere
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x16222a);
+    scene.fog = new THREE.FogExp2(0x16222a, 0.0115);
+
+    // 2. Camera
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 180);
+    camera.position.set(0, 6.5, 11);
+    camera.lookAt(0, 2, -10);
+
+    // 3. Renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('game-container').appendChild(renderer.domElement);
+
+    // 4. Procedural Textures & Materials
+    createMaterials();
+
+    // 5. Lighting
+    setupLights();
+
+    // 6. Build Player Character
+    buildPlayer();
+
+    // 7. Initial Track Generation
+    resetWorld();
+
+    // 8. Event Listeners
+    setupInputs();
+    window.addEventListener('resize', onWindowResize);
+
+    // Start Render Loop
+    animate();
+}
+
+// --- PROCEDURAL TEXTURES ---
+function createStoneTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d');
+
+    // Base stone color
+    ctx.fillStyle = '#4a4e54';
+    ctx.fillRect(0, 0, 512, 512);
+
+    // Noise & grain
+    for (let i = 0; i < 6000; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 512;
+        const shade = Math.floor(50 + Math.random() * 50);
+        ctx.fillStyle = `rgb(${shade},${shade+3},${shade+6})`;
+        ctx.fillRect(x, y, 3, 3);
+    }
+
+    // Temple tile grid lines
+    ctx.strokeStyle = '#25282c';
+    ctx.lineWidth = 6;
+    const rows = 4;
+    const cols = 3;
+    const rowH = 512 / rows;
+    const colW = 512 / cols;
+
+    for (let r = 0; r <= rows; r++) {
+        ctx.beginPath();
+        ctx.moveTo(0, r * rowH);
+        ctx.lineTo(512, r * rowH);
+        ctx.stroke();
+    }
+    for (let c = 0; c <= cols; c++) {
+        ctx.beginPath();
+        ctx.moveTo(c * colW, 0);
+        ctx.lineTo(c * colW, 512);
+        ctx.stroke();
+    }
+
+    // Moss accents
+    ctx.fillStyle = 'rgba(46, 105, 58, 0.35)';
+    for (let i = 0; i < 35; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * 512, Math.random() * 512, 8 + Math.random() * 20, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+}
+
+function createMaterials() {
+    stoneTexture = createStoneTexture();
+
+    goldMaterial = new THREE.MeshStandardMaterial({
+        color: 0xffd700,
+        metalness: 0.85,
+        roughness: 0.2,
+        emissive: 0x443300
+    });
+
+    dangerMaterial = new THREE.MeshStandardMaterial({
+        color: 0xd9381e,
+        roughness: 0.4,
+        metalness: 0.3,
+        emissive: 0x330500
+    });
+
+    woodMaterial = new THREE.MeshStandardMaterial({
+        color: 0x5c3a21,
+        roughness: 0.85
+    });
+
+    pillarMaterial = new THREE.MeshStandardMaterial({
+        map: stoneTexture,
+        roughness: 0.9
+    });
+}
+
+// --- LIGHTING ---
+function setupLights() {
+    const ambientLight = new THREE.AmbientLight(0x6c8ca3, 0.75);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffedd5, 1.35);
+    dirLight.position.set(18, 35, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 1;
+    dirLight.shadow.camera.far = 110;
+    const d = 30;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    scene.add(dirLight);
+
+    // Torch-like warm glow following player
+    const playerLight = new THREE.PointLight(0xffaa44, 0.9, 18);
+    playerLight.position.set(0, 4, 2);
+    scene.add(playerLight);
+}
+
+// --- ARTICULATED 3D PLAYER ---
+function buildPlayer() {
+    playerGroup = new THREE.Group();
+
+    const shirtMat = new THREE.MeshStandardMaterial({ color: 0x2b5876, roughness: 0.6 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: 0x3d2c1e, roughness: 0.8 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xf1c27d, roughness: 0.5 });
+    const hatMat = new THREE.MeshStandardMaterial({ color: 0x4a2e16, roughness: 0.7 });
+    const backpackMat = new THREE.MeshStandardMaterial({ color: 0x8c6239, roughness: 0.8 });
+
+    // Torso
+    torso = new THREE.Mesh(new THREE.BoxGeometry(0.95, 1.2, 0.55), shirtMat);
+    torso.position.y = 1.5;
+    torso.castShadow = true;
+    playerGroup.add(torso);
+
+    // Explorer Backpack
+    const backpack = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.85, 0.35), backpackMat);
+    backpack.position.set(0, 1.55, 0.42);
+    backpack.castShadow = true;
+    playerGroup.add(backpack);
+
+    // Head
+    head = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), skinMat);
+    head.position.y = 2.48;
+    head.castShadow = true;
+    playerGroup.add(head);
+
+    // Explorer Fedora Hat
+    const hatBrim = new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.08, 16), hatMat);
+    hatBrim.position.y = 2.82;
+    hatBrim.castShadow = true;
+    playerGroup.add(hatBrim);
+
+    const hatTop = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.42, 0.35, 16), hatMat);
+    hatTop.position.y = 3.0;
+    hatTop.castShadow = true;
+    playerGroup.add(hatTop);
+
+    // Limbs (Pivot groups for running animation)
+    leftLeg = createLimb(0.32, 0.9, 0.32, pantsMat, -0.25, 0.9, 0);
+    rightLeg = createLimb(0.32, 0.9, 0.32, pantsMat, 0.25, 0.9, 0);
+    leftArm = createLimb(0.26, 0.85, 0.26, skinMat, -0.65, 2.0, 0);
+    rightArm = createLimb(0.26, 0.85, 0.26, skinMat, 0.65, 2.0, 0);
+
+    playerGroup.add(leftLeg, rightLeg, leftArm, rightArm);
+    scene.add(playerGroup);
+}
+
+function createLimb(w, h, d, mat, x, y, z) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, y, z);
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.y = -h / 2;
+    mesh.castShadow = true;
+    pivot.add(mesh);
+    return pivot;
+}
+
+// --- WORLD & TRACK GENERATION ---
+function resetWorld() {
+    // Clear existing objects
+    segments.forEach(s => scene.remove(s.mesh));
+    obstacles.forEach(o => scene.remove(o.mesh));
+    coins.forEach(c => scene.remove(c.mesh));
+    particles.forEach(p => scene.remove(p.mesh));
+
+    segments = [];
+    obstacles = [];
+    coins = [];
+    particles = [];
+
+    // Reset player state
+    currentLane = 1;
+    targetX = CONFIG.lanes[currentLane];
+    playerY = 0;
+    velocityY = 0;
+    isJumping = false;
+    isSliding = false;
+    slideTimer = 0;
+    currentSpeed = CONFIG.initialSpeed;
+    score = 0;
+    coinCount = 0;
+
+    playerGroup.position.set(0, 0, 0);
+    playerGroup.rotation.set(0, 0, 0);
+    playerGroup.scale.set(1, 1, 1);
+
+    // Build initial segments (first 5 safe)
+    for (let i = 0; i < CONFIG.visibleSegments; i++) {
+        const zPos = -i * CONFIG.segmentLength;
+        spawnSegment(zPos, i < 5);
+    }
+}
+
+function spawnSegment(zPos, isSafe = false) {
+    const group = new THREE.Group();
+    group.position.z = zPos;
+
+    // Decide if this segment has a chasm gap (only if not safe)
+    const isGap = !isSafe && Math.random() < 0.16;
+
+    if (!isGap) {
+        // Main Stone Bridge Deck
+        const deckGeo = new THREE.BoxGeometry(10.6, 2, CONFIG.segmentLength);
+        const deckMat = new THREE.MeshStandardMaterial({
+            map: stoneTexture,
+            roughness: 0.85
+        });
+        const deck = new THREE.Mesh(deckGeo, deckMat);
+        deck.position.y = -1;
+        deck.receiveShadow = true;
+        group.add(deck);
+
+        // Side Stone Curbs
+        const curbGeo = new THREE.BoxGeometry(0.6, 0.5, CONFIG.segmentLength);
+        const leftCurb = new THREE.Mesh(curbGeo, pillarMaterial);
+        leftCurb.position.set(-5.3, 0.25, 0);
+        leftCurb.receiveShadow = true;
+        leftCurb.castShadow = true;
+
+        const rightCurb = new THREE.Mesh(curbGeo, pillarMaterial);
+        rightCurb.position.set(5.3, 0.25, 0);
+        rightCurb.receiveShadow = true;
+        rightCurb.castShadow = true;
+
+        group.add(leftCurb, rightCurb);
+    } else {
+        // Gap Warning Edge Strips on previous/next visual cues
+        const gapObstacle = {
+            type: 'gap',
+            z: zPos,
+            length: CONFIG.segmentLength - 2.2, // Forgiving hitbox
+            mesh: new THREE.Group() // Dummy group
+        };
+        obstacles.push(gapObstacle);
+    }
+
+    // Jungle Temple Scenery on sides (Pillars & Foliage)
+    if (Math.random() < 0.65) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const pillarH = 7 + Math.random() * 6;
+        const pillar = new THREE.Mesh(
+            new THREE.BoxGeometry(1.6, pillarH, 1.6),
+            pillarMaterial
+        );
+        pillar.position.set(side * (7.5 + Math.random() * 3), pillarH / 2 - 2, 0);
+        pillar.castShadow = true;
+        pillar.receiveShadow = true;
+        group.add(pillar);
+
+        // Jungle foliage cluster
+        const foliage = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(2.2 + Math.random() * 1.5, 1),
+            new THREE.MeshStandardMaterial({ color: 0x1e4d2b, roughness: 0.9 })
+        );
+        foliage.position.set(side * (9 + Math.random() * 4), 0.5, (Math.random() - 0.5) * 6);
+        group.add(foliage);
+    }
+
+    scene.add(group);
+    segments.push({ mesh: group, z: zPos, isGap });
+
+    // Spawn Obstacles & Coins on solid ground
+    if (!isSafe && !isGap) {
+        spawnObstaclesAndCoins(zPos);
+    }
+}
+
+function spawnObstaclesAndCoins(zPos) {
+    const laneIndices = [0, 1, 2];
+    // Shuffle lanes
+    laneIndices.sort(() => Math.random() - 0.5);
+
+    const patternRoll = Math.random();
+
+    if (patternRoll < 0.55) {
+        // Spawn 1 or 2 obstacles
+        const numObstacles = Math.random() < 0.4 ? 2 : 1;
+        for (let i = 0; i < numObstacles; i++) {
+            const lane = laneIndices[i];
+            createObstacle(lane, zPos);
+        }
+        // Spawn coins in the remaining free lane
+        const freeLane = laneIndices[numObstacles];
+        if (Math.random() < 0.7) {
+            spawnCoinLine(freeLane, zPos, 3);
+        }
+    } else if (patternRoll < 0.85) {
+        // Coin arc or straight line
+        const coinLane = laneIndices[0];
+        spawnCoinLine(coinLane, zPos, 4);
+    }
+}
+
+function createObstacle(lane, zPos) {
+    const x = CONFIG.lanes[lane];
+    const typeRoll = Math.random();
+    const obsGroup = new THREE.Group();
+    obsGroup.position.set(x, 0, zPos);
+
+    let type = 'low'; // 'low' (jump over), 'high' (slide under), 'blocker' (switch lane)
+
+    if (typeRoll < 0.38) {
+        // LOW BARRIER (Spiked Log / Stone Barricade - Jump over)
+        type = 'low';
+        const log = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.45, 0.45, 2.7, 12),
+            woodMaterial
+        );
+        log.rotation.z = Math.PI / 2;
+        log.position.y = 0.55;
+        log.castShadow = true;
+        obsGroup.add(log);
+
+        // Red danger spikes
+        for (let s = -0.9; s <= 0.9; s += 0.6) {
+            const spike = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.5, 6), dangerMaterial);
+            spike.position.set(s, 1.05, 0);
+            obsGroup.add(spike);
+        }
+    } else if (typeRoll < 0.72) {
+        // HIGH ARCHWAY (Fire/Blade Beam - Slide under)
+        type = 'high';
+        const postGeo = new THREE.BoxGeometry(0.35, 3.2, 0.35);
+        const leftPost = new THREE.Mesh(postGeo, pillarMaterial);
+        leftPost.position.set(-1.25, 1.6, 0);
+        leftPost.castShadow = true;
+
+        const rightPost = new THREE.Mesh(postGeo, pillarMaterial);
+        rightPost.position.set(1.25, 1.6, 0);
+        rightPost.castShadow = true;
+
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(2.9, 1.5, 0.6), dangerMaterial);
+        beam.position.set(0, 2.35, 0);
+        beam.castShadow = true;
+
+        obsGroup.add(leftPost, rightPost, beam);
+    } else {
+        // SOLID TEMPLE TOTEM (Must dodge left/right)
+        type = 'blocker';
+        const totem = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.4, 1.6), pillarMaterial);
+        totem.position.y = 1.7;
+        totem.castShadow = true;
+        totem.receiveShadow = true;
+
+        const trim = new THREE.Mesh(new THREE.BoxGeometry(2.55, 0.35, 1.75), dangerMaterial);
+        trim.position.y = 2.8;
+
+        obsGroup.add(totem, trim);
+    }
+
+    scene.add(obsGroup);
+    obstacles.push({
+        type,
+        lane,
+        x,
+        z: zPos,
+        mesh: obsGroup
+    });
+}
+
+function spawnCoinLine(lane, zStart, count) {
+    const x = CONFIG.lanes[lane];
+    const coinGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.14, 16);
+    coinGeo.rotateX(Math.PI / 2);
+
+    for (let i = 0; i < count; i++) {
+        const coinMesh = new THREE.Mesh(coinGeo, goldMaterial);
+        const z = zStart - (i - count / 2) * 2.1;
+        coinMesh.position.set(x, 1.1, z);
+        coinMesh.castShadow = true;
+        scene.add(coinMesh);
+
+        coins.push({
+            mesh: coinMesh,
+            x,
+            z,
+            collected: false
+        });
+    }
+}
+
+// --- PARTICLE EFFECTS ---
+function spawnParticles(x, y, z, colorHex, count = 12) {
+    const geo = new THREE.BoxGeometry(0.18, 0.18, 0.18);
+    const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+
+    for (let i = 0; i < count; i++) {
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        scene.add(mesh);
+
+        particles.push({
+            mesh,
+            vx: (Math.random() - 0.5) * 9,
+            vy: Math.random() * 8 + 2,
+            vz: (Math.random() - 0.5) * 9,
+            life: 0.55
+        });
+    }
+}
+
+// --- CONTROLS ---
+function setupInputs() {
+    window.addEventListener('keydown', (e) => {
+        if (!isPlaying) return;
+
+        switch (e.code) {
+            case 'ArrowLeft':
+            case 'KeyA':
+                moveLane(-1);
+                break;
+            case 'ArrowRight':
+            case 'KeyD':
+                moveLane(1);
+                break;
+            case 'ArrowUp':
+            case 'KeyW':
+            case 'Space':
+                jump();
+                break;
+            case 'ArrowDown':
+            case 'KeyS':
+                slide();
+                break;
+        }
+    });
+
+    // Touch / Swipe Support
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    window.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+
+    window.addEventListener('touchend', (e) => {
+        if (!isPlaying) return;
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        const dy = e.changedTouches[0].screenY - touchStartY;
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (Math.abs(dx) > 30) {
+                moveLane(dx > 0 ? 1 : -1);
+            }
+        } else {
+            if (Math.abs(dy) > 30) {
+                if (dy < 0) jump();
+                else slide();
+            }
+        }
+    }, { passive: true });
+
+    document.getElementById('start-btn').addEventListener('click', startGame);
+    document.getElementById('restart-btn').addEventListener('click', startGame);
+}
+
+function moveLane(dir) {
+    const newLane = Math.max(0, Math.min(2, currentLane + dir));
+    if (newLane !== currentLane) {
+        currentLane = newLane;
+        targetX = CONFIG.lanes[currentLane];
+    }
+}
+
+function jump() {
+    if (!isJumping) {
+        isJumping = true;
+        isSliding = false;
+        velocityY = CONFIG.jumpForce;
+        spawnParticles(playerGroup.position.x, 0.2, 0, 0x8d99ae, 8);
+    }
+}
+
+function slide() {
+    if (!isSliding) {
+        isSliding = true;
+        slideTimer = CONFIG.slideDuration;
+        if (isJumping) {
+            // Fast slam down
+            velocityY = -35;
+        }
+    }
+}
+
+// --- GAME FLOW ---
+function startGame() {
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.add('hidden');
+    hud.classList.remove('hidden');
+
+    resetWorld();
+    isPlaying = true;
+    clock.getDelta(); // Reset delta spike
+}
+
+function triggerGameOver() {
+    isPlaying = false;
+    hud.classList.add('hidden');
+    gameOverScreen.classList.remove('hidden');
+
+    const finalMeters = Math.floor(score);
+    if (finalMeters > bestScore) {
+        bestScore = finalMeters;
+        localStorage.setItem('relicRunnerBest', bestScore);
+    }
+
+    finalScoreEl.textContent = `${finalMeters}m`;
+    finalCoinsEl.textContent = coinCount;
+    bestScoreEl.textContent = `${bestScore}m`;
+
+    spawnParticles(playerGroup.position.x, playerY + 1.5, 0, 0xd9381e, 25);
+}
+
+// --- MAIN UPDATE LOOP ---
+function update(dt) {
+    if (!isPlaying) {
+        // Gentle idle camera sway on menu screen
+        const t = performance.now() * 0.001;
+        camera.position.x = Math.sin(t * 0.5) * 1.5;
+        camera.lookAt(0, 2, -10);
+        return;
+    }
+
+    // 1. Increase Speed & Score
+    currentSpeed = Math.min(CONFIG.maxSpeed, currentSpeed + CONFIG.speedIncrement * dt);
+    const moveDist = currentSpeed * dt;
+    score += moveDist * 0.5;
+    scoreDisplay.textContent = `${Math.floor(score)}m`;
+
+    // 2. Horizontal Lane Interpolation & Tilt
+    const prevX = playerGroup.position.x;
+    playerGroup.position.x += (targetX - playerGroup.position.x) * Math.min(1, dt * 16);
+    const lateralVel = (playerGroup.position.x - prevX) / dt;
+    playerGroup.rotation.z = -lateralVel * 0.025;
+
+    // 3. Vertical Jump & Gravity Physics
+    if (isJumping || playerY > 0) {
+        playerY += velocityY * dt;
+        velocityY += CONFIG.gravity * dt;
+
+        if (playerY <= 0) {
+            playerY = 0;
+            velocityY = 0;
+            isJumping = false;
+        }
+    }
+    playerGroup.position.y = playerY;
+
+    // 4. Slide State & Character Animation
+    if (isSliding) {
+        slideTimer -= dt;
+        playerGroup.scale.y = 0.45;
+        playerGroup.rotation.x = 0.65;
+        if (slideTimer <= 0) {
+            isSliding = false;
+        }
+    } else {
+        playerGroup.scale.y += (1 - playerGroup.scale.y) * Math.min(1, dt * 18);
+        playerGroup.rotation.x += (0 - playerGroup.rotation.x) * Math.min(1, dt * 18);
+    }
+
+    // Limb running cycle
+    if (!isJumping && !isSliding) {
+        runCycle += dt * currentSpeed * 0.65;
+        const swing = Math.sin(runCycle) * 0.85;
+        leftLeg.rotation.x = swing;
+        rightLeg.rotation.x = -swing;
+        leftArm.rotation.x = -swing * 0.8;
+        rightArm.rotation.x = swing * 0.8;
+        torso.position.y = 1.5 + Math.abs(Math.cos(runCycle)) * 0.12;
+    } else if (isJumping) {
+        leftLeg.rotation.x = 0.5;
+        rightLeg.rotation.x = -0.3;
+        leftArm.rotation.x = -0.9;
+        rightArm.rotation.x = -0.9;
+    }
+
+    // 5. Dynamic Camera Follow
+    camera.position.x += (playerGroup.position.x * 0.55 - camera.position.x) * Math.min(1, dt * 8);
+    camera.position.y += ((6.5 + playerY * 0.45) - camera.position.y) * Math.min(1, dt * 8);
+    camera.lookAt(playerGroup.position.x * 0.3, 2 + playerY * 0.2, -12);
+
+    // 6. Move & Recycle Track Segments
+    for (let i = segments.length - 1; i >= 0; i--) {
+        const seg = segments[i];
+        seg.z += moveDist;
+        seg.mesh.position.z = seg.z;
+
+        if (seg.z > CONFIG.segmentLength * 1.5) {
+            scene.remove(seg.mesh);
+            segments.splice(i, 1);
+
+            // Find furthest segment Z
+            let minZ = 0;
+            segments.forEach(s => { if (s.z < minZ) minZ = s.z; });
+            spawnSegment(minZ - CONFIG.segmentLength, false);
+        }
+    }
+
+    // 7. Update & Check Obstacles
+    const pX = playerGroup.position.x;
+    const pHeight = isSliding ? 1.1 : 2.8;
+
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.z += moveDist;
+        obs.mesh.position.z = obs.z;
+
+        // Collision Detection (Player is at z = 0)
+        if (obs.type === 'gap') {
+            const halfLen = obs.length / 2;
+            if (Math.abs(obs.z) < halfLen && playerY <= 0.15) {
+                triggerGameOver();
+                return;
+            }
+        } else {
+            // Standard 3D obstacle check
+            if (Math.abs(obs.z) < 0.75 && Math.abs(pX - obs.x) < 1.05) {
+                if (obs.type === 'low' && playerY < 1.05) {
+                    triggerGameOver();
+                    return;
+                }
+                if (obs.type === 'high' && pHeight > 1.55) {
+                    triggerGameOver();
+                    return;
+                }
+                if (obs.type === 'blocker') {
+                    triggerGameOver();
+                    return;
+                }
+            }
         }
 
-        function closeModal() {
-            document.getElementById('drop-modal').style.display = 'none';
+        // Cleanup passed obstacles
+        if (obs.z > 15) {
+            scene.remove(obs.mesh);
+            obstacles.splice(i, 1);
         }
-    </script>
+    }
+
+    // 8. Update & Collect Coins
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
+        coin.z += moveDist;
+        coin.mesh.position.z = coin.z;
+        coin.mesh.rotation.y += dt * 3.5;
+
+        if (!coin.collected && Math.abs(coin.z) < 1.1 && Math.abs(pX - coin.x) < 1.2 && playerY < 2.5) {
+            coin.collected = true;
+            coinCount++;
+            score += 10;
+            coinsDisplay.textContent = coinCount;
+            spawnParticles(coin.x, 1.2, coin.z, 0xffd700, 10);
+            scene.remove(coin.mesh);
+            coins.splice(i, 1);
+            continue;
+        }
+
+        if (coin.z > 15) {
+            scene.remove(coin.mesh);
+            coins.splice(i, 1);
+        }
+    }
+
+    // 9. Update Particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life -= dt;
+        p.mesh.position.x += p.vx * dt;
+        p.mesh.position.y += p.vy * dt;
+        p.mesh.position.z += p.vz * dt;
+        p.vy += CONFIG.gravity * 0.5 * dt;
+        p.mesh.scale.setScalar(Math.max(0.01, p.life * 1.8));
+
+        if (p.life <= 0) {
+            scene.remove(p.mesh);
+            particles.splice(i, 1);
+        }
+    }
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    const dt = Math.min(clock.getDelta(), 0.05); // Cap delta for tab-switch safety
+    update(dt);
+    renderer.render(scene, camera);
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// Boot the game
+init();
+</script>
 </body>
 </html>
